@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    hikari:
+      max-lifetime: 30000
+      idle-timeout: 10000
+      keepalive-time: 5000
+  cache:
+    type: simple
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: file:liquibase/changelog/master.yml
+
+app:
+  security:
+    jwt:
+      public-key: classpath:certs/public-key.pem
+      issuer: http://localhost:8081/authstarter
+      audience: springstarter-api
+
+cache:
+  ttl:
+    samples: 60
+
+logging:
+  level:
+    org.springframework.security: WARN

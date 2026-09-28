@@ -1,0 +1,3 @@
+package com.qbe.springstarter.dto;
+
+public record UserDto(Long id, String name, String username, String email) {}

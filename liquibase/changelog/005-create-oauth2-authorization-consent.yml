@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-oauth2-authorization-consent
+      author: qbe
+      changes:
+        - createTable:
+            tableName: oauth2_authorization_consent
+            columns:
+              - column:
+                  name: registered_client_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: principal_name
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: authorities
+                  type: varchar(1000)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: oauth2_authorization_consent
+            columnNames: registered_client_id, principal_name
+            constraintName: pk_oauth2_authorization_consent

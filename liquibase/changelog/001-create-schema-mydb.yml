@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-schema-mydb
+      author: qbe
+      changes:
+        - sql:
+            sql: CREATE SCHEMA IF NOT EXISTS mydb;
+      rollback:
+        - sql:
+            sql: DROP SCHEMA IF EXISTS mydb CASCADE;

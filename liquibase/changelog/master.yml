@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - include:
+      file: 001-create-schema-mydb.yml
+      relativeToChangelogFile: true
+  - include:
+      file: 002-create-table-sample-entity.yml
+      relativeToChangelogFile: true
+  - include:
+      file: 003-create-oauth2-registered-client.yml
+      relativeToChangelogFile: true
+  - include:
+      file: 004-create-oauth2-authorization.yml
+      relativeToChangelogFile: true
+  - include:
+      file: 005-create-oauth2-authorization-consent.yml
+      relativeToChangelogFile: true
+  - include:
+      file: 006-insert-clients.yml
+      relativeToChangelogFile: true

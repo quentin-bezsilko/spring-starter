@@ -1,0 +1,19 @@
+{
+  "name": "PRODUCT-001",
+  "description": "Sample product description",
+  "quantity": 100,
+  "stock": 5000,
+  "weight": 12.5,
+  "ratio": 0.75,
+  "price": 99.99,
+  "active": true,
+  "category": "A",
+  "manufacturedDate": "2026-08-18",
+  "manufacturedTime": "08:30:00",
+  "createdAt": "2026-08-18T08:30:00",
+  "updatedAt": "2026-08-18T08:30:00Z",
+  "externalId": "550e8400-e29b-41d4-a716-446655440000",
+  "document": "SGVsbG8gV29ybGQ=",
+  "comments": "This is a sample comment",
+  "status": "CREATED"
+}
