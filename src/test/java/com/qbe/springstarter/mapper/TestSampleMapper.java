@@ -40,19 +40,19 @@ class TestSampleMapper {
         assertThat(dto.createdAt()).isEqualTo(entity.getCreatedAt());
         assertThat(dto.updatedAt()).isEqualTo(entity.getUpdatedAt());
         assertThat(dto.externalId()).isEqualTo(entity.getExternalId());
+        assertThat(dto.document()).isEqualTo(entity.getDocument());
         assertThat(dto.comments()).isEqualTo(entity.getComments());
         assertThat(dto.status()).isEqualTo(entity.getStatus());
         assertThat(dto.version()).isEqualTo(entity.getVersion());
     }
 
     @Test
-    void shouldMapDtoToEntity() {
+    void shouldMapDtoToEntityAndIgnoreTechnicalFields() {
         SampleDto dto = buildDto();
 
         SampleEntity entity = sampleMapper.toEntity(dto);
 
         assertThat(entity).isNotNull();
-        assertThat(entity.getId()).isEqualTo(dto.id());
         assertThat(entity.getName()).isEqualTo(dto.name());
         assertThat(entity.getDescription()).isEqualTo(dto.description());
         assertThat(entity.getQuantity()).isEqualTo(dto.quantity());
@@ -64,22 +64,33 @@ class TestSampleMapper {
         assertThat(entity.getCategory()).isEqualTo(dto.category());
         assertThat(entity.getManufacturedDate()).isEqualTo(dto.manufacturedDate());
         assertThat(entity.getManufacturedTime()).isEqualTo(dto.manufacturedTime());
-        assertThat(entity.getCreatedAt()).isEqualTo(dto.createdAt());
-        assertThat(entity.getUpdatedAt()).isEqualTo(dto.updatedAt());
         assertThat(entity.getExternalId()).isEqualTo(dto.externalId());
+        assertThat(entity.getDocument()).isEqualTo(dto.document());
         assertThat(entity.getComments()).isEqualTo(dto.comments());
         assertThat(entity.getStatus()).isEqualTo(dto.status());
-        assertThat(entity.getVersion()).isEqualTo(dto.version());
+
+        // Champs techniques explicitement ignorés par MapStruct.
+        assertThat(entity.getId()).isNull();
+        assertThat(entity.getCreatedAt()).isNull();
+        assertThat(entity.getUpdatedAt()).isNull();
+        assertThat(entity.getVersion()).isNull();
     }
 
     @Test
-    void shouldUpdateEntityFromDto() {
+    void shouldUpdateEntityFromDtoAndPreserveTechnicalFields() {
         SampleEntity entity = buildEntity();
 
-        UUID uuid = UUID.randomUUID();
-        Instant now = Instant.now();
+        Long originalId = entity.getId();
+        LocalDateTime originalCreatedAt = entity.getCreatedAt();
+        Instant originalUpdatedAt = entity.getUpdatedAt();
+        UUID originalExternalId = entity.getExternalId();
+        Long originalVersion = entity.getVersion();
+
+        UUID dtoExternalId = UUID.randomUUID();
+        Instant dtoUpdatedAt = Instant.now().plusSeconds(60);
 
         SampleDto dto = SampleDto.builder()
+                .id(999L)
                 .name("UPDATED_NAME")
                 .description("Updated description")
                 .quantity(999)
@@ -92,15 +103,17 @@ class TestSampleMapper {
                 .manufacturedDate(LocalDate.of(2025, 1, 1))
                 .manufacturedTime(LocalTime.of(12, 0))
                 .createdAt(LocalDateTime.of(2025, 1, 1, 12, 0))
-                .updatedAt(now)
-                .externalId(uuid)
+                .updatedAt(dtoUpdatedAt)
+                .externalId(dtoExternalId)
+                .document(new byte[] {9, 8, 7})
                 .comments("Updated comment")
                 .status(Status.CREATED)
-                .version(2L)
+                .version(999L)
                 .build();
 
         sampleMapper.updateEntityFromDto(dto, entity);
 
+        // Champs métier modifiables.
         assertThat(entity.getName()).isEqualTo("UPDATED_NAME");
         assertThat(entity.getDescription()).isEqualTo("Updated description");
         assertThat(entity.getQuantity()).isEqualTo(999);
@@ -112,12 +125,15 @@ class TestSampleMapper {
         assertThat(entity.getCategory()).isEqualTo('B');
         assertThat(entity.getManufacturedDate()).isEqualTo(LocalDate.of(2025, 1, 1));
         assertThat(entity.getManufacturedTime()).isEqualTo(LocalTime.of(12, 0));
-        assertThat(entity.getCreatedAt()).isEqualTo(LocalDateTime.of(2025, 1, 1, 12, 0));
-        assertThat(entity.getUpdatedAt()).isEqualTo(now);
-        assertThat(entity.getExternalId()).isEqualTo(uuid);
+        assertThat(entity.getDocument()).containsExactly(9, 8, 7);
         assertThat(entity.getComments()).isEqualTo("Updated comment");
         assertThat(entity.getStatus()).isEqualTo(Status.CREATED);
-        assertThat(entity.getVersion()).isEqualTo(2L);
+        // Champs techniques protégés.
+        assertThat(entity.getId()).isEqualTo(originalId);
+        assertThat(entity.getCreatedAt()).isEqualTo(originalCreatedAt);
+        assertThat(entity.getUpdatedAt()).isEqualTo(originalUpdatedAt);
+        assertThat(entity.getExternalId()).isEqualTo(originalExternalId);
+        assertThat(entity.getVersion()).isEqualTo(originalVersion);
     }
 
     @Test
@@ -128,15 +144,50 @@ class TestSampleMapper {
                 .name("UPDATED_NAME")
                 .description(null)
                 .quantity(null)
+                .stock(null)
+                .weight(null)
+                .ratio(null)
+                .price(null)
+                .comments(null)
                 .build();
 
         sampleMapper.updateEntityFromDto(dto, entity);
 
         assertThat(entity.getName()).isEqualTo("UPDATED_NAME");
-
         assertThat(entity.getDescription()).isEqualTo("Sample description");
-
         assertThat(entity.getQuantity()).isEqualTo(100);
+        assertThat(entity.getStock()).isEqualTo(1000L);
+        assertThat(entity.getWeight()).isEqualTo(10.5);
+        assertThat(entity.getRatio()).isEqualTo(0.75f);
+        assertThat(entity.getPrice()).isEqualByComparingTo("99.99");
+        assertThat(entity.getComments()).isEqualTo("Comment");
+    }
+
+    @Test
+    void shouldPreserveTechnicalFieldsWhenDtoContainsDifferentValues() {
+        SampleEntity entity = buildEntity();
+
+        Long id = entity.getId();
+        UUID externalId = entity.getExternalId();
+        LocalDateTime createdAt = entity.getCreatedAt();
+        Instant updatedAt = entity.getUpdatedAt();
+        Long version = entity.getVersion();
+
+        SampleDto dto = SampleDto.builder()
+                .id(999L)
+                .createdAt(LocalDateTime.of(2000, 1, 1, 0, 0))
+                .updatedAt(Instant.parse("2000-01-01T00:00:00Z"))
+                .externalId(UUID.randomUUID())
+                .version(999L)
+                .build();
+
+        sampleMapper.updateEntityFromDto(dto, entity);
+
+        assertThat(entity.getId()).isEqualTo(id);
+        assertThat(entity.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(entity.getUpdatedAt()).isEqualTo(updatedAt);
+        assertThat(entity.getExternalId()).isEqualTo(externalId);
+        assertThat(entity.getVersion()).isEqualTo(version);
     }
 
     private SampleDto buildDto() {
@@ -151,11 +202,12 @@ class TestSampleMapper {
                 .price(BigDecimal.valueOf(99.99))
                 .active(true)
                 .category('A')
-                .manufacturedDate(LocalDate.now())
+                .manufacturedDate(LocalDate.of(2025, 1, 1))
                 .manufacturedTime(LocalTime.of(10, 30))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(Instant.now())
+                .createdAt(LocalDateTime.of(2025, 1, 1, 10, 30))
+                .updatedAt(Instant.parse("2025-01-01T10:30:00Z"))
                 .externalId(UUID.randomUUID())
+                .document(new byte[] {1, 2, 3})
                 .comments("Comment")
                 .status(Status.CREATED)
                 .version(1L)
@@ -164,7 +216,6 @@ class TestSampleMapper {
 
     private SampleEntity buildEntity() {
         SampleEntity entity = new SampleEntity();
-
         entity.setId(1L);
         entity.setName("PRODUCT-001");
         entity.setDescription("Sample description");
@@ -175,11 +226,12 @@ class TestSampleMapper {
         entity.setPrice(BigDecimal.valueOf(99.99));
         entity.setActive(true);
         entity.setCategory('A');
-        entity.setManufacturedDate(LocalDate.now());
+        entity.setManufacturedDate(LocalDate.of(2025, 1, 1));
         entity.setManufacturedTime(LocalTime.of(10, 30));
-        entity.setCreatedAt(LocalDateTime.now());
-        entity.setUpdatedAt(Instant.now());
+        entity.setCreatedAt(LocalDateTime.of(2025, 1, 1, 10, 30));
+        entity.setUpdatedAt(Instant.parse("2025-01-01T10:30:00Z"));
         entity.setExternalId(UUID.randomUUID());
+        entity.setDocument(new byte[] {1, 2, 3});
         entity.setComments("Comment");
         entity.setStatus(Status.CREATED);
         entity.setVersion(1L);

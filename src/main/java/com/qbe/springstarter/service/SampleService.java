@@ -11,6 +11,8 @@ import com.qbe.springstarter.repository.SampleRepository;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,8 @@ public class SampleService implements ISampleService {
             try (Scope scope = span.makeCurrent()) {
                 span.setAttribute("sample.name", dto.name());
                 SampleEntity entity = sampleMapper.toEntity(dto);
+                entity.setCreatedAt(LocalDateTime.now());
+                entity.setUpdatedAt(Instant.now());
                 entity = sampleRepository.save(entity);
                 sampleMetricsConfig.getCreateSuccess().increment();
                 return sampleMapper.toDto(entity);
@@ -107,6 +111,7 @@ public class SampleService implements ISampleService {
                     return new NotFoundException(SpringStarterConstants.SAMPLE_ENTITY_RESOURCE_NAME, id);
                 });
 
+                entity.setUpdatedAt(Instant.now());
                 sampleMapper.updateEntityFromDto(dto, entity);
                 entity = sampleRepository.save(entity);
                 sampleMetricsConfig.getUpdateSuccess().increment();
