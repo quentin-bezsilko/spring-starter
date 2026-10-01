@@ -6,15 +6,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Samples", description = "Operations on sample resources")
 @RequestMapping("/api/v1/samples")
@@ -42,7 +38,13 @@ public interface ISampleController {
     @ApiResponse(responseCode = "401", description = "Authentication required")
     @ApiResponse(responseCode = "403", description = "Missing READ authority")
     @GetMapping
-    ResponseEntity<List<SampleDto>> findAll();
+    ResponseEntity<Page<SampleDto>> findAll(
+            @PageableDefault(
+                            page = 0,
+                            size = 20,
+                            sort = "id",
+                            direction = org.springframework.data.domain.Sort.Direction.ASC)
+                    Pageable pageable);
 
     @Operation(summary = "Update a sample", description = "Requires WRITE authority.")
     @ApiResponse(responseCode = "202", description = "Sample successfully updated")
@@ -50,6 +52,7 @@ public interface ISampleController {
     @ApiResponse(responseCode = "401", description = "Authentication required")
     @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
     @ApiResponse(responseCode = "404", description = "Sample not found")
+    @ApiResponse(responseCode = "409", description = "Version conflict")
     @PutMapping("/{id}")
     ResponseEntity<SampleDto> update(
             @Parameter(description = "Unique identifier of the sample", example = "1") @PathVariable Long id,

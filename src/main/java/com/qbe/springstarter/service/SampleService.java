@@ -14,13 +14,14 @@ import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,18 +88,16 @@ public class SampleService implements ISampleService {
     }
 
     @Override
-    public List<SampleDto> findAll() {
+    public Page<SampleDto> findAll(Pageable pageable) {
         return sampleMetricsConfig.getFindAllTimer().record(() -> {
             try {
-                List<SampleDto> result = sampleRepository.findAll().stream()
-                        .map(sampleMapper::toDto)
-                        .toList();
+                Page<SampleDto> result = sampleRepository.findAll(pageable).map(sampleMapper::toDto);
                 sampleMetricsConfig.getFindAllSuccess().increment();
                 return result;
             } catch (Exception e) {
                 sampleMetricsConfig.getFindAllError().increment();
                 sampleMetricsConfig.getTechnicalErrors().increment();
-                log.error("Error during findAll", e);
+                log.error("Error during paginated findAll", e);
                 throw e;
             }
         });

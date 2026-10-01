@@ -59,7 +59,12 @@ class TestSampleControllerIT extends TestAbstractIntegration {
                         .content(objectMapper.writeValueAsString(buildSampleDto("CONTROLLER-PRODUCT-003"))))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/v1/samples")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/samples").param("page", "0").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").isNumber());
     }
 
     @Test

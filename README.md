@@ -2,11 +2,7 @@
 
 > Template de référence pour le développement d'applications **Spring Boot** modernes, sécurisées, testables et observables.
 
-Ce projet fournit un socle technique réutilisable pour les applications backend d'entreprise.
-
-Il intègre les principaux composants nécessaires au développement, aux tests, à la qualité du code, à la sécurité, à l'observabilité et à l'exécution locale d'une application Spring Boot.
-
-L'objectif est de disposer d'un **template standardisé, reproductible, maintenable et facilement déployable**, servant de point de départ aux futurs projets backend.
+Ce projet fournit un socle backend réutilisable intégrant les principaux composants nécessaires au développement, aux tests, à la sécurité, à l'observabilité et à l'exécution locale d'une application Spring Boot.
 
 > **Statut :** socle backend fonctionnel et validé.  
 > Les évolutions restantes concernent principalement le CI/CD, Kubernetes, les dashboards et les alertes.
@@ -15,57 +11,45 @@ L'objectif est de disposer d'un **template standardisé, reproductible, maintena
 
 ## Table des matières
 
-## Table des matières
-
-- [Vue d'ensemble](#vue-densemble)
-- [Architecture](#architecture)
-- [Stack technique](#stack-technique)
-- [Prérequis](#prérequis)
-- [Quick Start](#quick-start)
-- [Configuration](#configuration)
-- [Services locaux](#services-locaux)
-- [Base de données](#base-de-données)
-- [Tests](#tests)
-- [Qualité du code](#qualité-du-code)
-- [Observabilité](#observabilité)
-- [Sécurité](#sécurité)
-- [Environnements](#environnements)
-- [CI/CD](#cicd)
-- [Structure du projet](#structure-du-projet)
-- [Dépannage](#dépannage)
-- [Roadmap](#roadmap)
-- [Bonnes pratiques](#bonnes-pratiques)
-- [Licence](#licence)
+- #vue-densemble
+- #architecture
+- #stack-technique
+- #prérequis
+- #quick-start
+- #configuration
+- #api-rest
+- #pagination
+- #gestion-des-conflits-de-version
+- #base-de-données
+- #tests-et-qualité
+- #observabilité
+- #sécurité
+- #cicd
+- #structure-du-projet
+- #bonnes-pratiques
 
 ---
 
 # Vue d'ensemble
 
-Le projet constitue un **socle Spring Boot générique** destiné à accélérer la création de nouveaux services backend.
-
 Le template fournit notamment :
 
-- une configuration Spring Boot standardisée ;
 - une API REST documentée avec OpenAPI / Swagger ;
-- une persistance PostgreSQL ;
-- la gestion des migrations avec Liquibase ;
-- un mécanisme de cache avec Redis ;
-- une sécurité basée sur Spring Security Resource Server et des JWT Bearer ;
-- la validation des JWT émis par `springstarter-auth` ;
-- le contrôle de la signature RSA, de l'issuer, de l'audience et de l'expiration ;
-- une autorisation basée sur les authorities `READ` et `WRITE` ;
-- des tests unitaires avec JUnit ;
-- des tests d'intégration avec Testcontainers ;
-- des tests d'architecture avec ArchUnit ;
+- une persistance PostgreSQL avec Spring Data JPA ;
+- des migrations avec Liquibase ;
+- une pagination et un tri avec Spring Data `Pageable` ;
+- un cache Redis ;
+- une authentification JWT via `springstarter-auth` ;
+- une sécurisation avec Spring Security Resource Server ;
+- des authorities `READ` et `WRITE` ;
+- une gestion des conflits de modification avec JPA `@Version` ;
+- de la validation avec Jakarta Bean Validation ;
+- des tests unitaires et d'intégration ;
 - une mesure de couverture avec JaCoCo ;
-- un formatage automatique avec Spotless ;
-- une analyse de qualité avec SonarQube ;
-- une exécution locale conteneurisée avec Docker Compose ;
-- de l'observabilité avec OpenTelemetry ;
-- du tracing distribué avec OpenTelemetry et Tempo ;
-- des métriques applicatives avec Micrometer et Prometheus ;
-- de la centralisation des logs avec Loki ;
-- de la visualisation des métriques, traces et logs avec Grafana.
+- des contrôles Spotless et ArchUnit ;
+- une analyse SonarQube ;
+- une observabilité avec OpenTelemetry, Micrometer, Prometheus, Tempo, Loki et Grafana ;
+- une exécution locale avec Docker Compose.
 
 ---
 
@@ -73,158 +57,101 @@ Le template fournit notamment :
 
 L'authentification est séparée du backend métier.
 
-`springstarter-auth` authentifie les utilisateurs et émet les JWT.  
-`springstarter` agit exclusivement comme **Resource Server** et valide les tokens reçus.
-
 ```text
-                              ┌──────────────────┐
-                              │      Client      │
-                              └────────┬─────────┘
-                                       │
-                              Login / Refresh
-                                       │
-                                       ▼
-                         ┌─────────────────────────┐
-                         │   springstarter-auth    │
-                         │                         │
-                         │ • Authentication        │
-                         │ • JWT generation        │
-                         │ • RSA signing           │
-                         │ • Refresh tokens        │
-                         └────────────┬────────────┘
-                                      │
-                                  Bearer JWT
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │      springstarter      │
-                         │                         │
-                         │ • REST API              │
-                         │ • Resource Server       │
-                         │ • JWT validation        │
-                         │ • READ / WRITE          │
-                         │ • Micrometer            │
-                         │ • OpenTelemetry         │
-                         └───────┬────────┬────────┘
-                                 │        │
-                                 ▼        ▼
-                         ┌───────────┐ ┌───────┐
-                         │PostgreSQL │ │ Redis │
-                         └───────────┘ └───────┘
+Client
+  │
+  │ Login / Refresh
+  ▼
+springstarter-auth
+  │
+  │ JWT signé RSA
+  ▼
+Client
+  │
+  │ Authorization: Bearer <token>
+  ▼
+springstarter
+  ├── REST API
+  ├── JWT validation
+  ├── READ / WRITE
+  ├── PostgreSQL
+  ├── Redis
+  └── Observabilité
 ```
 
-En environnement local, `springstarter-auth` et `springstarter` partagent le même serveur PostgreSQL via le réseau Docker :
+`springstarter-auth` authentifie les utilisateurs et émet les JWT.
+
+`springstarter` agit comme **Resource Server** et valide localement :
+
+- la signature RSA ;
+- l'issuer ;
+- l'audience ;
+- l'expiration ;
+- les authorities.
+
+En local, les deux applications utilisent le réseau Docker partagé :
 
 ```text
 springstarter-network
 ```
 
-Les données Auth et Backend restent logiquement séparées.
-
-L'observabilité est organisée ainsi :
-
-```text
-springstarter
-      │
-      ├── traces ─────► OpenTelemetry Collector ─────► Tempo
-      │
-      ├── logs ───────► OpenTelemetry Collector ─────► Loki
-      │
-      └── metrics ────► Actuator ───► Prometheus
-                                        │
-                                        ▼
-                                     Grafana
-```
-
-Le backend valide localement les JWT à l'aide de la clé publique RSA de `springstarter-auth`. Aucun appel vers le service Auth n'est nécessaire pour chaque requête métier.
-
-PostgreSQL assure la persistance des données tandis que Redis fournit les capacités de cache applicatif.
-
 ---
 
 # Stack technique
 
-## Composants disponibles
-
-| Domaine | Technologie | Statut |
-|---|---|:---:|
-| Runtime | Java 25 | ✅ |
-| Framework | Spring Boot | ✅ |
-| Build | Maven 3.9+ | ✅ |
-| API | OpenAPI / Swagger | ✅ |
-| HTTP Client | Spring WebClient | ✅ |
-| Base de données | PostgreSQL | ✅ |
-| Migrations | Liquibase | ✅ |
-| Cache | Redis | ✅ |
-| Sécurité | Spring Security Resource Server / JWT | ✅ |
-| Authentification | springstarter-auth / JWT RSA | ✅ |
-| Tests | JUnit | ✅ |
-| Tests d'intégration | Testcontainers | ✅ |
-| Couverture | JaCoCo | ✅ |
-| Architecture | ArchUnit | ✅ |
-| Formatage | Spotless | ✅ |
-| Observabilité | OpenTelemetry | ✅ |
-| Collecte télémétrie | OpenTelemetry Collector | ✅ |
-| Tracing | Tempo | ✅ |
-| Métriques | Micrometer / Prometheus | ✅ |
-| Logs | Loki | ✅ |
-| Visualisation | Grafana | ✅ |
-| Qualité | SonarQube | ✅ |
-| Conteneurisation | Docker / Docker Compose | ✅ |
-
-## Composants en cours ou prévus
-
-| Domaine | Technologie | Statut |
-|---|---|:---:|
-| CI/CD | GitLab CI/CD | 🚧 |
-| Orchestration | Kubernetes / AKS | 📋 |
-
-### Légende
-
-- ✅ Disponible
-- 🚧 En cours d'intégration
-- 📋 Prévu
+| Domaine | Technologie |
+|---|---|
+| Runtime | Java 25 |
+| Framework | Spring Boot |
+| Build | Maven |
+| API | REST / OpenAPI / Swagger |
+| Persistence | Spring Data JPA / Hibernate |
+| Pagination | Spring Data Pageable / Page |
+| Base de données | PostgreSQL |
+| Migrations | Liquibase |
+| Cache | Redis |
+| Sécurité | Spring Security / JWT |
+| Authentification | springstarter-auth |
+| Validation | Jakarta Bean Validation |
+| Tests | JUnit / Mockito / Testcontainers |
+| Couverture | JaCoCo |
+| Architecture | ArchUnit |
+| Formatage | Spotless |
+| Qualité | SonarQube |
+| Observabilité | OpenTelemetry / Micrometer |
+| Tracing | Tempo |
+| Métriques | Prometheus |
+| Logs | Loki |
+| Visualisation | Grafana |
+| Conteneurisation | Docker / Docker Compose |
+| CI/CD | GitLab CI/CD |
+| Orchestration | Kubernetes / AKS 🚧 |
 
 ---
 
 # Prérequis
 
-Les outils suivants doivent être installés sur la machine de développement.
-
-| Outil | Version minimale |
+| Outil | Version |
 |---|---|
 | Java | 25 |
 | Maven | 3.9+ |
 | Docker | Version récente |
 | Docker Compose | Version récente |
-| `curl` | Version récente |
-| `jq` | Version récente |
+| curl | Version récente |
+| jq | Version récente |
 
-Vérifier les versions installées :
+Vérification :
 
 ```bash
 java --version
 mvn --version
 docker --version
 docker compose version
-curl --version
-jq --version
 ```
 
 ---
 
 # Quick Start
-
-L'environnement local repose sur deux applications :
-
-1. `springstarter-auth`, responsable de l'authentification et du PostgreSQL partagé ;
-2. `springstarter`, le backend Resource Server.
-
-Le projet Auth doit être démarré en premier afin de créer :
-
-- le conteneur PostgreSQL ;
-- le réseau Docker `springstarter-network` ;
-- le service d'authentification.
 
 ## 1. Démarrer springstarter-auth
 
@@ -234,39 +161,29 @@ Depuis le projet `springstarter-auth` :
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-Vérifier les services :
+Le projet Auth fournit notamment :
 
-```bash
-docker compose -f docker/docker-compose.yml ps
-```
-
-Vérifier le réseau partagé :
-
-```bash
-docker network inspect springstarter-network
-```
+- le service d'authentification ;
+- PostgreSQL ;
+- le réseau `springstarter-network`.
 
 ## 2. Construire springstarter
-
-Depuis le projet backend :
 
 ```bash
 docker compose -f docker/docker-compose.yml build --no-cache
 ```
 
-## 3. Démarrer springstarter
+## 3. Démarrer le backend
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d --force-recreate
 ```
 
-## 4. Vérifier l'état des services
+## 4. Vérifier les services
 
 ```bash
 docker compose -f docker/docker-compose.yml ps
 ```
-
-## 5. Vérifier l'application
 
 ### Health Check
 
@@ -302,33 +219,17 @@ http://localhost:9000
 
 # Configuration
 
-La configuration de l'application est externalisée afin de permettre l'utilisation du même artefact dans différents environnements.
-
-Les informations sensibles ne doivent jamais être stockées directement dans le code source ou dans le repository.
-
-## Variables d'environnement
-
-Les paramètres tels que :
-
-- credentials de base de données ;
-- mots de passe ;
-- tokens ;
-- clés d'API ;
-- paramètres spécifiques aux environnements ;
-
-doivent être fournis via des variables d'environnement ou un gestionnaire de secrets adapté.
-
-Un fichier `.env.example` permet de documenter les variables nécessaires.
+La configuration est externalisée afin de permettre l'utilisation du même artefact sur plusieurs environnements.
 
 Exemple :
 
 ```dotenv
-# JWT validation
+# JWT
 JWT_PUBLIC_KEY=classpath:certs/public-key.pem
 JWT_ISSUER=http://localhost:8081/authstarter
 JWT_AUDIENCE=springstarter-api
 
-# Shared PostgreSQL
+# PostgreSQL
 SPRING_DATASOURCE_URL=jdbc:postgresql://shared-postgres:5432/postgres
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=postgres
@@ -340,174 +241,189 @@ SPRING_REDIS_PORT=6379
 
 # OpenTelemetry
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-OTEL_TRACES_EXPORTER=otlp
-OTEL_METRICS_EXPORTER=none
-OTEL_LOGS_EXPORTER=otlp
 ```
 
-## Clés RSA
-
-Le backend utilise uniquement la clé publique :
+Les secrets ne doivent jamais être versionnés.
 
 ```text
-src/main/resources/certs/public-key.pem
+.env                 ❌
+private-key.pem      ❌
+.env.example         ✅
+public-key.pem       ✅
 ```
 
-La clé privée RSA n'est jamais présente dans `springstarter`.
+La clé privée RSA reste exclusivement dans `springstarter-auth`.
 
-Elle reste exclusivement dans `springstarter-auth`, qui l'utilise pour signer les JWT.
+---
+
+# API REST
+
+La ressource d'exemple est disponible sous :
 
 ```text
-springstarter-auth
-├── private-key.pem
-└── public-key.pem
-
-springstarter
-└── public-key.pem
+/api/v1/samples
 ```
 
-> ⚠️ Le fichier `.env` contenant des secrets ou credentials locaux ne doit jamais être versionné.
+| Méthode | Endpoint | Description | Authority |
+|---|---|---|---|
+| POST | `/api/v1/samples` | Création | WRITE |
+| GET | `/api/v1/samples/{id}` | Consultation | READ |
+| GET | `/api/v1/samples` | Liste paginée | READ |
+| PUT | `/api/v1/samples/{id}` | Modification | WRITE |
+| DELETE | `/api/v1/samples/{id}` | Suppression | WRITE |
 
-La convention recommandée est :
+Principaux codes HTTP :
 
 ```text
-.env                 ❌ non versionné
-.env.example         ✅ versionné
-private-key.pem      ❌ jamais dans le backend
-public-key.pem       ✅ clé publique uniquement
+200 OK
+201 Created
+202 Accepted
+204 No Content
+400 Bad Request
+401 Unauthorized
+403 Forbidden
+404 Not Found
+409 Conflict
+500 Internal Server Error
 ```
 
 ---
 
-# Services locaux
+# Pagination
 
-L'environnement local repose sur Docker Compose.
+`GET /api/v1/samples` utilise Spring Data `Pageable`.
 
-## Services backend
+Les paramètres sont facultatifs :
 
-Les services propres au backend sont notamment :
+| Paramètre | Défaut | Description |
+|---|---:|---|
+| `page` | `0` | Numéro de page |
+| `size` | `20` | Nombre d'éléments |
+| `sort` | `id,asc` | Tri |
 
-- Spring Boot (`backend-app`) ;
-- Liquibase ;
-- Redis ;
-- OpenTelemetry Collector ;
-- Tempo ;
-- Loki ;
-- Prometheus ;
-- Grafana ;
-- SonarQube.
+Exemple :
 
-PostgreSQL est fourni par la stack `springstarter-auth` et rejoint le backend via le réseau Docker partagé `springstarter-network`.
-
-## Démarrer
-
-```bash
-docker compose -f docker/docker-compose.yml up -d
+```http
+GET /api/v1/samples?page=0&size=5&sort=id,asc
 ```
 
-## Reconstruire les images
+Sans paramètre :
 
-```bash
-docker compose -f docker/docker-compose.yml build --no-cache
+```http
+GET /api/v1/samples
 ```
 
-## Vérifier l'état
+le backend utilise :
 
-```bash
-docker compose -f docker/docker-compose.yml ps
+```text
+page=0
+size=20
+sort=id,asc
 ```
 
-## Consulter les logs
+Le format du tri est :
 
-Tous les services :
-
-```bash
-docker compose -f docker/docker-compose.yml logs -f
+```text
+property,direction
 ```
 
-Application uniquement :
+Exemples :
 
-```bash
-docker compose -f docker/docker-compose.yml logs -f backend-app
+```text
+id,asc
+name,desc
+createdAt,desc
 ```
 
-OpenTelemetry Collector :
+La réponse contient les données dans `content` ainsi que les métadonnées de pagination :
 
-```bash
-docker compose -f docker/docker-compose.yml logs -f otel-collector
+```json
+{
+  "content": [],
+  "number": 0,
+  "size": 20,
+  "totalElements": 0,
+  "totalPages": 0,
+  "first": true,
+  "last": true
+}
 ```
 
-## Arrêter les services
+Exemple avec curl :
 
 ```bash
-docker compose -f docker/docker-compose.yml down
+curl \
+  --header "Authorization: Bearer ${TOKEN}" \
+  "http://localhost:8080/springstarter/api/v1/samples?page=0&size=5&sort=id,asc"
 ```
 
-## Supprimer les volumes propres au backend
+---
 
-```bash
-docker compose -f docker/docker-compose.yml down -v
+# Gestion des conflits de version
+
+Les entités modifiables utilisent le verrouillage optimiste JPA :
+
+```java
+@Version
+private Long version;
 ```
 
-> ⚠️ Cette commande supprime les volumes appartenant au Compose backend.
->
-> Le volume PostgreSQL est géré par `springstarter-auth` et n'est pas supprimé par le Compose backend.
+Le client conserve la version reçue lors de la lecture et la transmet lors du `PUT`.
+
+Exemple :
+
+```text
+Client A lit version 3
+Client B lit version 3
+
+Client A modifie
+→ version 4
+
+Client B tente de modifier avec version 3
+→ 409 Conflict
+```
+
+Une modification obsolète retourne :
+
+```text
+409 Conflict
+```
+
+Le client doit alors recharger la dernière version avant de poursuivre.
+
+Hibernate reste responsable de l'incrément du champ `@Version`.
 
 ---
 
 # Base de données
 
-## PostgreSQL partagé
+PostgreSQL est fourni en local par `springstarter-auth`.
 
-En environnement local, `springstarter` ne démarre plus son propre serveur PostgreSQL.
-
-PostgreSQL est fourni par `springstarter-auth` et accessible depuis le backend via :
+Le backend le rejoint via :
 
 ```text
 springstarter-network
 ```
 
-Le hostname Docker utilisé est :
-
-```text
-shared-postgres
-```
-
-La datasource locale utilise donc :
+Datasource :
 
 ```text
 jdbc:postgresql://shared-postgres:5432/postgres
 ```
 
-La base de données utilisée est :
-
-```text
-postgres
-```
-
-Le schéma applicatif du backend est :
+Schéma applicatif :
 
 ```text
 mydb
 ```
 
-Le partage concerne uniquement l'infrastructure PostgreSQL. Les données et responsabilités Auth et Backend restent logiquement séparées.
-
-## Vérifier la résolution depuis le backend
-
-```bash
-docker exec springstarter getent hosts shared-postgres
-```
-
-## Connexion locale
-
-Le conteneur PostgreSQL étant géré par `springstarter-auth`, la connexion peut être ouverte avec :
+Connexion :
 
 ```bash
 docker exec -it authstarter-postgres psql -U postgres -d postgres
 ```
 
-Puis, par exemple :
+Puis :
 
 ```sql
 SET search_path TO mydb;
@@ -515,169 +431,82 @@ SET search_path TO mydb;
 
 ## Liquibase
 
-Liquibase est utilisé pour versionner et appliquer les évolutions du schéma de base de données.
+Toutes les évolutions du schéma doivent être réalisées avec Liquibase.
 
-Les modifications du schéma doivent être réalisées via les changelogs Liquibase plutôt que par des modifications manuelles de la base.
-
-Les migrations sont versionnées avec le code source afin de garantir la reproductibilité des environnements.
-
-Le conteneur Liquibase du backend rejoint également `springstarter-network` afin d'accéder à PostgreSQL.
+Les modifications manuelles du schéma sont à éviter afin de garantir la reproductibilité des environnements.
 
 ---
 
-# Tests
+# Tests et qualité
 
-Les tests font partie intégrante du cycle de développement.
+## Tests
 
-## Tests unitaires
+Tests unitaires :
 
 ```bash
 mvn test
 ```
 
-## Build complet
+Build complet :
 
 ```bash
 mvn clean verify
 ```
 
-Cette commande exécute notamment :
+Les tests couvrent notamment :
 
-- la compilation ;
-- les tests ;
-- les tests d'intégration configurés ;
-- les contrôles de qualité intégrés au build ;
-- la vérification de la couverture lorsque configurée.
+- controllers ;
+- services ;
+- validation ;
+- pagination ;
+- persistance ;
+- conflits de version ;
+- erreurs fonctionnelles et techniques.
 
-## Tests d'intégration
+Les tests d'intégration utilisent **Testcontainers** avec les dépendances réelles nécessaires, notamment PostgreSQL.
 
-Les tests d'intégration utilisent **Testcontainers** afin d'exécuter les dépendances nécessaires dans des conteneurs isolés.
+## Pagination
 
-Les principales dépendances concernées sont notamment :
+Les tests vérifient notamment :
 
-- PostgreSQL ;
-- Redis ;
-- les services nécessaires aux scénarios d'intégration.
-
-L'objectif est de disposer de tests :
-
-- reproductibles ;
-- isolés ;
-- indépendants de l'environnement Docker local ;
-- exécutables automatiquement dans la CI.
-
----
-
-# Qualité du code
-
-Le projet applique plusieurs mécanismes complémentaires afin de maintenir un niveau de qualité homogène.
+- le contenu des pages ;
+- `page` et `size` ;
+- `totalElements` ;
+- `totalPages` ;
+- les pages vides ;
+- le passage du `Pageable` au repository.
 
 ## JaCoCo
 
-JaCoCo est utilisé pour mesurer la couverture des tests.
-
-Le projet impose un objectif minimal de :
+Objectif minimal :
 
 ```text
 80 %
 ```
 
-Le rapport HTML est généré dans :
+Rapport :
 
 ```text
 target/site/jacoco/index.html
 ```
 
-Le répertoire complet est :
-
-```text
-target/site/jacoco/
-```
-
----
-
 ## Spotless
 
-Vérifier le formatage :
+Vérification :
 
 ```bash
 mvn spotless:check
 ```
 
-Appliquer automatiquement le formatage :
+Correction :
 
 ```bash
 mvn spotless:apply
 ```
 
----
-
-## ArchUnit
-
-ArchUnit permet de vérifier automatiquement les règles architecturales du projet.
-
-Les règles sont exécutées avec la suite de tests :
-
-```bash
-mvn test
-```
-
-Toute évolution importante de l'architecture doit être accompagnée d'une mise à jour des règles ArchUnit lorsque cela est nécessaire.
-
----
-
 ## SonarQube
 
-SonarQube est utilisé pour analyser :
-
-- la qualité du code ;
-- la maintenabilité ;
-- les bugs potentiels ;
-- les vulnérabilités ;
-- les code smells ;
-- la couverture des tests.
-
-### Accès
-
-```text
-http://localhost:9000
-```
-
-Sur une installation locale neuve, les credentials initiaux sont généralement :
-
-```text
-Utilisateur : admin
-Mot de passe : admin
-```
-
-Le mot de passe doit être modifié lorsqu'il est demandé.
-
-### Création du projet
-
-Dans SonarQube :
-
-1. Aller dans **Projects**.
-2. Sélectionner **Create Project**.
-3. Choisir **Manually**.
-4. Renseigner :
-
-```text
-Project Key  : spring-starter
-Project Name : spring-starter
-```
-
-5. Configurer les permissions.
-6. Générer un token d'analyse.
-
-### Analyse
-
-Il est préférable de placer le token dans une variable d'environnement :
-
-```bash
-export SONAR_TOKEN='<TOKEN>'
-```
-
-Puis :
+Analyse :
 
 ```bash
 mvn clean verify sonar:sonar \
@@ -687,26 +516,242 @@ mvn clean verify sonar:sonar \
   -Dsonar.scm.disabled=true
 ```
 
-> ⚠️ Le token SonarQube ne doit jamais être versionné dans le repository.
+Le token SonarQube ne doit jamais être versionné.
 
 ---
 
 # Observabilité
 
-L'observabilité repose sur :
-
-- OpenTelemetry ;
-- Micrometer ;
-- Prometheus ;
-- OpenTelemetry Collector ;
-- Tempo ;
-- Loki ;
-- Grafana.
-
-Les signaux sont répartis ainsi :
+Le socle utilise :
 
 ```text
+                ┌────────► Tempo
+                │
+springstarter ──┼────────► Loki
+                │
+                └────────► Prometheus
+                              │
+                              ▼
+                           Grafana
+```
+
+## OpenTelemetry
+
+Utilisé pour :
+
+- les traces ;
+- les logs ;
+- la corrélation `traceId` / `spanId`.
+
+## Micrometer / Prometheus
+
+Les métriques suivent les opérations métier :
+
+```text
+create
+findById
+findAll
+update
+delete
+```
+
+avec notamment :
+
+- succès ;
+- erreurs ;
+- ressources non trouvées ;
+- erreurs techniques ;
+- temps d'exécution.
+
+## Grafana
+
+```text
+http://localhost:3000
+```
+
+Les dashboards agrègent les métriques Prometheus, les traces Tempo et les logs Loki.
+
+---
+
+# Sécurité
+
+`springstarter` fonctionne comme **OAuth2 Resource Server**.
+
+Le flux est :
+
+```text
+Client
+   │
+   │ credentials
+   ▼
+springstarter-auth
+   │
+   │ JWT RSA
+   ▼
+Client
+   │
+   │ Bearer JWT
+   ▼
 springstarter
-├── traces ── OTLP ──► OpenTelemetry Collector ──► Tempo
-├── logs   ── OTLP ──► OpenTelemetry Collector ──► Loki
-└── metrics ─────────► Actuator ──► Prometheus ──►
+```
+
+Le backend vérifie :
+
+- signature ;
+- issuer ;
+- audience ;
+- expiration ;
+- authorities.
+
+Authorities principales :
+
+```text
+READ
+WRITE
+```
+
+Répartition :
+
+```text
+GET       → READ
+POST      → WRITE
+PUT       → WRITE
+DELETE    → WRITE
+```
+
+---
+
+# CI/CD
+
+Le pipeline GitLab contient les principales étapes :
+
+```text
+lint
+test
+sonar
+docker
+security
+promote
+deploy
+```
+
+Les contrôles comprennent notamment :
+
+- compilation ;
+- tests ;
+- couverture ;
+- SonarQube ;
+- build Docker ;
+- Xray ;
+- Checkov ;
+- promotion ;
+- déploiement.
+
+Les secrets CI/CD sont récupérés depuis HashiCorp Vault lorsque nécessaire.
+
+Ils ne doivent jamais être stockés directement dans le repository.
+
+---
+
+# Structure du projet
+
+```text
+spring-starter/
+├── docker/
+├── scripts/
+├── src/
+│   ├── main/
+│   │   ├── java/com/qbe/springstarter/
+│   │   │   ├── config/
+│   │   │   ├── controller/
+│   │   │   ├── dto/
+│   │   │   ├── entity/
+│   │   │   ├── enums/
+│   │   │   ├── error/
+│   │   │   ├── mapper/
+│   │   │   ├── repository/
+│   │   │   ├── service/
+│   │   │   └── validator/
+│   │   └── resources/
+│   └── test/
+├── .gitlab-ci.yml
+├── pom.xml
+└── README.md
+```
+
+Architecture générale :
+
+```text
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+PostgreSQL
+```
+
+---
+
+# Bonnes pratiques
+
+## API
+
+- Utiliser des DTO pour le contrat REST.
+- Valider les données entrantes.
+- Utiliser des codes HTTP cohérents.
+- Paginer les collections.
+- Utiliser un tri déterministe.
+
+## Persistance
+
+- Utiliser Liquibase pour les évolutions du schéma.
+- Ne pas modifier manuellement `@Version`.
+- Laisser Hibernate gérer le verrouillage optimiste.
+
+## Sécurité
+
+- Ne jamais versionner de secrets.
+- Ne jamais stocker la clé privée dans le backend.
+- Utiliser des authorities explicites.
+- Externaliser les credentials.
+
+## Tests
+
+- Tester la logique métier avec des TU.
+- Tester JPA avec Testcontainers.
+- Tester le contrat HTTP avec MockMvc.
+- Couvrir les cas limites et les conflits de version.
+
+## Observabilité
+
+- Séparer erreurs métier et erreurs techniques.
+- Corréler logs et traces.
+- Mesurer les opérations critiques.
+- Ne jamais journaliser de secrets.
+
+---
+
+# Roadmap
+
+## Disponible
+
+- ✅ API REST / OpenAPI
+- ✅ PostgreSQL / Liquibase
+- ✅ Redis
+- ✅ JWT / Resource Server
+- ✅ Pagination / tri
+- ✅ Optimistic locking / 409 Conflict
+- ✅ Tests / Testcontainers
+- ✅ JaCoCo / Spotless / ArchUnit
+- ✅ SonarQube
+- ✅ OpenTelemetry / Prometheus / Tempo / Loki / Grafana
+- ✅ Docker Compose
+
+## En cours / prévu
+
+- 🚧 GitLab CI/CD
+- 🚧 Scans de sécurité
+- 📋 Kubernetes / AKS
+- 📋 Dashboards métier
+- 📋 Alerting

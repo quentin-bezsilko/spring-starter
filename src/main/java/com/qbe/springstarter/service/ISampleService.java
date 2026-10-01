@@ -1,14 +1,15 @@
 package com.qbe.springstarter.service;
 
 import com.qbe.springstarter.dto.SampleDto;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ISampleService {
     SampleDto create(SampleDto dto);
 
     SampleDto findById(Long id);
 
-    List<SampleDto> findAll();
+    Page<SampleDto> findAll(Pageable pageable);
 
     SampleDto update(Long id, SampleDto dto);
 

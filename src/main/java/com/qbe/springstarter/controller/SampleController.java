@@ -3,9 +3,10 @@ package com.qbe.springstarter.controller;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.service.SampleService;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,9 +32,13 @@ public class SampleController implements ISampleController {
     }
 
     @Override
-    public ResponseEntity<List<SampleDto>> findAll() {
-        log.info("Finding all SampleEntities");
-        return ResponseEntity.status(HttpStatus.OK).body(service.findAll());
+    public ResponseEntity<Page<SampleDto>> findAll(Pageable pageable) {
+        log.info(
+                "Finding SampleEntities page={}, size={}, sort={}",
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                pageable.getSort());
+        return ResponseEntity.status(HttpStatus.OK).body(service.findAll(pageable));
     }
 
     @Override
