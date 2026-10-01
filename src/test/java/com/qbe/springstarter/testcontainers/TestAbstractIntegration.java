@@ -58,6 +58,7 @@ public abstract class TestAbstractIntegration {
                 .document(Base64.getDecoder().decode("SGVsbG8gV29ybGQ="))
                 .comments("This is a sample comment")
                 .status(Status.CREATED)
+                .version(1L)
                 .build();
     }
 
@@ -80,6 +81,7 @@ public abstract class TestAbstractIntegration {
         entity.setDocument(Base64.getDecoder().decode("SGVsbG8gV29ybGQ="));
         entity.setComments("This is a sample comment");
         entity.setStatus(Status.CREATED);
+        entity.setVersion(1L);
 
         return entity;
     }

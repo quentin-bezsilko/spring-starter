@@ -80,6 +80,8 @@ databaseChangeLog:
               - column:
                   name: version
                   type: BIGINT
+                  constraints:
+                    nullable: false
       rollback:
         - dropTable:
             schemaName: mydb

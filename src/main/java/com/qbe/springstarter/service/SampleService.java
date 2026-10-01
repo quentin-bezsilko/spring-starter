@@ -6,6 +6,7 @@ import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.entity.SampleEntity;
 import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.error.TechnicalException;
+import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.mapper.SampleMapper;
 import com.qbe.springstarter.repository.SampleRepository;
 import io.opentelemetry.api.trace.Span;
@@ -14,12 +15,14 @@ import io.opentelemetry.context.Scope;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -102,6 +105,7 @@ public class SampleService implements ISampleService {
     }
 
     @Override
+    @Transactional
     @CachePut(value = "samples", key = "#id")
     public SampleDto update(Long id, SampleDto dto) {
         return sampleMetricsConfig.getUpdateTimer().record(() -> {
@@ -110,13 +114,15 @@ public class SampleService implements ISampleService {
                     sampleMetricsConfig.getUpdateNotFound().increment();
                     return new NotFoundException(SpringStarterConstants.SAMPLE_ENTITY_RESOURCE_NAME, id);
                 });
-
+                if (!Objects.equals(entity.getVersion(), dto.version())) {
+                    throw new VersionConflictException(id, dto.version(), entity.getVersion());
+                }
                 entity.setUpdatedAt(Instant.now());
                 sampleMapper.updateEntityFromDto(dto, entity);
-                entity = sampleRepository.save(entity);
+                entity = sampleRepository.saveAndFlush(entity);
                 sampleMetricsConfig.getUpdateSuccess().increment();
                 return sampleMapper.toDto(entity);
-            } catch (NotFoundException e) {
+            } catch (NotFoundException | VersionConflictException e) {
                 throw e;
             } catch (Exception e) {
                 sampleMetricsConfig.getUpdateError().increment();

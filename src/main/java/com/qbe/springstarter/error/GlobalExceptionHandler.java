@@ -6,6 +6,8 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -86,5 +88,26 @@ public class GlobalExceptionHandler {
         problemDetail.setProperty("path", request.getRequestURI());
 
         return problemDetail;
+    }
+
+    @ExceptionHandler(VersionConflictException.class)
+    public ProblemDetail handleVersionConflict(final VersionConflictException exception, HttpServletRequest request) {
+        log.error("Unexpected error on {}", request.getRequestURI(), exception);
+
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problemDetail.setTitle("Version conflict");
+        problemDetail.setDetail(exception.getMessage());
+        problemDetail.setProperty("path", request.getRequestURI());
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handleOptimisticLock(ObjectOptimisticLockingFailureException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problem.setTitle("Version conflict");
+        problem.setDetail("The resource has been modified by another user");
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
     }
 }

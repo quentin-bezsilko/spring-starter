@@ -10,6 +10,7 @@ import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.entity.SampleEntity;
 import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.error.TechnicalException;
+import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.mapper.SampleMapper;
 import com.qbe.springstarter.repository.SampleRepository;
 import io.micrometer.core.instrument.Counter;
@@ -116,12 +117,14 @@ class TestSampleService {
 
     @BeforeEach
     void setUp() {
-        sampleService = new SampleService(sampleRepository, sampleMapper, tracer, metrics);
-        sampleDto = SampleDto.builder().id(1L).name("Sample").build();
+        sampleDto = SampleDto.builder().id(1L).name("Sample").version(0L).build();
 
         sampleEntity = new SampleEntity();
         sampleEntity.setId(1L);
         sampleEntity.setName("Sample");
+        sampleEntity.setVersion(0L);
+
+        sampleService = new SampleService(sampleRepository, sampleMapper, tracer, metrics);
 
         lenient().when(tracer.spanBuilder(anyString())).thenReturn(spanBuilder);
         lenient().when(spanBuilder.startSpan()).thenReturn(span);
@@ -186,16 +189,15 @@ class TestSampleService {
         @DisplayName("Doit créer une entité")
         void shouldCreateEntity() {
             when(sampleMapper.toEntity(sampleDto)).thenReturn(sampleEntity);
-            when(sampleRepository.save(sampleEntity)).thenReturn(sampleEntity);
-            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+            when(sampleRepository.save(any(SampleEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(sampleMapper.toDto(any(SampleEntity.class))).thenReturn(sampleDto);
 
             SampleDto result = sampleService.create(sampleDto);
-
             assertEquals(sampleDto, result);
+
             verify(sampleMapper).toEntity(sampleDto);
             verify(sampleRepository).save(sampleEntity);
             verify(sampleMapper).toDto(sampleEntity);
-            verify(sampleRepository).save(sampleEntity);
             verify(createSuccess).increment();
         }
 
@@ -263,12 +265,29 @@ class TestSampleService {
         @DisplayName("Doit mettre à jour une entité existante")
         void shouldUpdateEntity() {
             when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
-            when(sampleRepository.save(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
             SampleDto result = sampleService.update(1L, sampleDto);
+
             assertEquals(sampleDto, result);
+
             verify(sampleMapper).updateEntityFromDto(sampleDto, sampleEntity);
-            verify(sampleRepository).save(sampleEntity);
+            verify(sampleRepository).saveAndFlush(sampleEntity);
+            verify(updateSuccess).increment();
+        }
+
+        @Test
+        @DisplayName("Doit lever une VersionConflictException lorsque la version est obsolète")
+        void shouldThrowVersionConflictException() {
+            sampleEntity.setVersion(1L);
+
+            SampleDto outdatedDto = sampleDto.toBuilder().version(0L).build();
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+
+            assertThrows(VersionConflictException.class, () -> sampleService.update(1L, outdatedDto));
+            verify(sampleMapper, never()).updateEntityFromDto(any(), any());
+            verify(sampleRepository, never()).saveAndFlush(any());
         }
 
         @Test

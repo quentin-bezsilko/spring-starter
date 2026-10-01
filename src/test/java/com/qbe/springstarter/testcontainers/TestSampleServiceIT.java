@@ -4,16 +4,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.entity.SampleEntity;
 import com.qbe.springstarter.error.NotFoundException;
+import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.repository.SampleRepository;
 import com.qbe.springstarter.service.SampleService;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
 class TestSampleServiceIT extends TestAbstractIntegration {
 
     @Autowired
@@ -60,8 +60,12 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     void shouldUpdateSample() {
         SampleDto created = sampleService.create(buildSampleDto("SERVICE-PRODUCT-004-" + UUID.randomUUID()));
 
+        assertThat(created.version()).isZero();
+
         UUID uuidUpdate = UUID.randomUUID();
-        SampleDto updatedDto = buildSampleDto("UPDATED_SERVICE_PRODUCT-" + uuidUpdate).toBuilder()
+
+        SampleDto updatedDto = created.toBuilder()
+                .name("UPDATED_SERVICE_PRODUCT-" + uuidUpdate)
                 .description("Updated description")
                 .quantity(200)
                 .stock(500L)
@@ -75,16 +79,35 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         SampleDto updated = sampleService.update(created.id(), updatedDto);
 
+        SampleEntity persisted = sampleRepository.findById(created.id()).orElseThrow();
+
         assertThat(updated.name()).isEqualTo("UPDATED_SERVICE_PRODUCT-" + uuidUpdate);
         assertThat(updated.description()).isEqualTo("Updated description");
         assertThat(updated.quantity()).isEqualTo(200);
+        assertThat(persisted.getVersion()).isEqualTo(1L);
+        assertThat(updated.version()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldThrowVersionConflictWhenUpdatingWithOutdatedVersion() {
+        SampleDto created = sampleService.create(buildSampleDto("SERVICE-VERSION-CONFLICT-" + UUID.randomUUID()));
+
+        SampleDto firstUpdate = created.toBuilder().name("SERVICE-FIRST-UPDATE").build();
+
+        SampleDto updated = sampleService.update(created.id(), firstUpdate);
+        assertThat(updated.version()).isGreaterThan(created.version());
+
+        SampleDto outdatedUpdate =
+                created.toBuilder().name("SERVICE-OUTDATED-UPDATE").build();
+
+        assertThatThrownBy(() -> sampleService.update(created.id(), outdatedUpdate))
+                .isInstanceOf(VersionConflictException.class);
     }
 
     @Test
     void shouldDeleteSample() {
         SampleDto created = sampleService.create(buildSampleDto("SERVICE-PRODUCT-005" + UUID.randomUUID()));
         sampleService.delete(created.id());
-
         assertThat(sampleRepository.existsById(created.id())).isFalse();
     }
 

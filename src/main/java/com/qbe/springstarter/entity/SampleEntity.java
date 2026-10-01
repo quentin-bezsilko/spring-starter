@@ -74,5 +74,6 @@ public class SampleEntity {
     private Status status;
 
     @Version
+    @Column(nullable = false)
     private Long version;
 }

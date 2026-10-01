@@ -44,5 +44,5 @@ public record SampleDto(
         @NotNull(message = "Document is mandatory") byte[] document,
         @Size(max = 5000, message = "Comments cannot exceed 5000 characters") String comments,
         @NotNull(message = "Status is mandatory") Status status,
-        Long version)
+        @NotNull(message = "Version is mandatory") Long version)
         implements Serializable {}

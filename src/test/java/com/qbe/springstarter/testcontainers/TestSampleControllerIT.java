@@ -77,7 +77,8 @@ class TestSampleControllerIT extends TestAbstractIntegration {
 
         SampleDto created = objectMapper.readValue(createResult.getResponse().getContentAsString(), SampleDto.class);
 
-        SampleDto update = buildSampleDto("CONTROLLER-UPDATED_PRODUCT").toBuilder()
+        SampleDto update = created.toBuilder()
+                .name("CONTROLLER-UPDATED_PRODUCT")
                 .externalId(UUID.randomUUID())
                 .build();
 
@@ -86,6 +87,40 @@ class TestSampleControllerIT extends TestAbstractIntegration {
                         .content(objectMapper.writeValueAsString(update)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.name").value("CONTROLLER-UPDATED_PRODUCT"));
+    }
+
+    @Test
+    void shouldReturnConflictWhenUpdatingWithOutdatedVersion() throws Exception {
+        MvcResult createResult = mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("CONTROLLER-VERSION-CONFLICT"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        SampleDto created = objectMapper.readValue(createResult.getResponse().getContentAsString(), SampleDto.class);
+
+        SampleDto firstUpdate =
+                created.toBuilder().name("CONTROLLER-FIRST-UPDATE").build();
+
+        MvcResult updateResult = mockMvc.perform(put("/api/v1/samples/{id}", created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstUpdate)))
+                .andExpect(status().isAccepted())
+                .andReturn();
+
+        SampleDto updated = objectMapper.readValue(updateResult.getResponse().getContentAsString(), SampleDto.class);
+
+        // Vérifie au passage que Hibernate a bien incrémenté la version.
+        assert updated.version() > created.version();
+
+        // Réutilisation volontaire de l'ancienne version.
+        SampleDto outdatedUpdate =
+                created.toBuilder().name("CONTROLLER-OUTDATED-UPDATE").build();
+
+        mockMvc.perform(put("/api/v1/samples/{id}", created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(outdatedUpdate)))
+                .andExpect(status().isConflict());
     }
 
     @Test
