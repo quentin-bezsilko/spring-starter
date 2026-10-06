@@ -23,9 +23,6 @@ services:
       LOKI_ENDPOINT: ${LOKI_ENDPOINT}
     volumes:
       - ../opentelemetry/otel-collector-config.yml:/etc/otelcol/config.yml
-    ports:
-      - "${OTEL_GRPC_PORT}:4317"
-      - "${OTEL_HTTP_PORT}:4318"
     restart: unless-stopped
 
   tempo:
@@ -87,6 +84,8 @@ services:
     volumes:
       - ../grafana/provisioning:/etc/grafana/provisioning
     depends_on:
+      - loki
+      - prometheus
       - tempo
     restart: unless-stopped
 

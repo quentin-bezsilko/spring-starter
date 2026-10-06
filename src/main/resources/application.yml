@@ -75,9 +75,8 @@ logging:
   level:
     root: INFO
     com.qbe.springstarter: INFO
-
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} [traceId=%X{trace_id:-} spanId=%X{span_id:-}] - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} [traceId=%X{traceId:-} spanId=%X{spanId:-}] - %msg%n"
 
 cache:
   ttl:

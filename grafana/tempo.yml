@@ -10,12 +10,18 @@ distributor:
         http:
           endpoint: 0.0.0.0:4318
 
-ingester:
+live_store:
+  max_trace_idle: 10s
   max_block_duration: 5m
+  max_block_bytes: 1000000
 
-compactor:
-  compaction:
-    block_retention: 24h
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        compaction_window: 1h
+        max_block_bytes: 100000000
+        block_retention: 24h
 
 storage:
   trace:

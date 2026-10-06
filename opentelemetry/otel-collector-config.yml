@@ -5,10 +5,8 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
-
 processors:
   batch:
-
 exporters:
   otlp:
     endpoint: ${TEMPO_ENDPOINT}
@@ -16,7 +14,6 @@ exporters:
       insecure: true
   otlphttp/loki:
     endpoint: ${LOKI_ENDPOINT}
-
 service:
   pipelines:
     traces:

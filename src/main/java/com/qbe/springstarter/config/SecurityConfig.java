@@ -1,6 +1,7 @@
 package com.qbe.springstarter.config;
 
 import com.qbe.springstarter.constants.ApiConstants;
+import com.qbe.springstarter.metrics.filter.SecurityMetricsFilter;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -19,6 +21,12 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private static final String AUTHORITIES_CLAIM = "authorities";
+
+    private final SecurityMetricsFilter securityMetricsFilter;
+
+    public SecurityConfig(SecurityMetricsFilter securityMetricsFilter) {
+        this.securityMetricsFilter = securityMetricsFilter;
+    }
 
     @Bean
     SecurityFilterChain applicationSecurityFilterChain(HttpSecurity http) {
@@ -40,7 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, ApiConstants.API)
                         .hasAuthority("WRITE")
                         .anyRequest()
-                        .authenticated());
+                        .authenticated())
+                .addFilterBefore(securityMetricsFilter, BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }
