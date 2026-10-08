@@ -2,6 +2,7 @@ package com.qbe.springstarter.controller;
 
 import com.qbe.springstarter.constants.MetricsConstants;
 import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.metrics.annotation.SampleMetricAnnotation;
 import com.qbe.springstarter.service.SampleService;
 import jakarta.validation.Valid;
@@ -37,13 +38,20 @@ public class SampleController implements ISampleController {
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.FIND_ALL)
-    public ResponseEntity<Page<SampleDto>> findAll(Pageable pageable) {
+    public ResponseEntity<Page<SampleDto>> findAll(
+            String search, Status status, Character category, Boolean active, Pageable pageable) {
+
         log.info(
-                "Finding SampleEntities page={}, size={}, sort={}",
+                "Finding SampleEntities search={}, status={}, category={}, active={}, page={}, size={}, sort={}",
+                search,
+                status,
+                category,
+                active,
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 pageable.getSort());
-        return ResponseEntity.status(HttpStatus.OK).body(service.findAll(pageable));
+
+        return ResponseEntity.ok(service.findAll(search, status, category, active, pageable));
     }
 
     @Override

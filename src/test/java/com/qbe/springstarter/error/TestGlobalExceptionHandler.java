@@ -12,6 +12,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -26,6 +28,7 @@ class TestGlobalExceptionHandler {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+
         exceptionHandler = new GlobalExceptionHandler();
 
         when(httpServletRequest.getRequestURI()).thenReturn("/api/v1/samples/1");
@@ -34,7 +37,6 @@ class TestGlobalExceptionHandler {
     @Test
     void shouldHandleNotFoundException() {
         NotFoundException exception = new NotFoundException("sample", 1L);
-
         ProblemDetail problemDetail = exceptionHandler.handleNotFoundException(exception, httpServletRequest);
 
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
@@ -46,7 +48,6 @@ class TestGlobalExceptionHandler {
     @Test
     void shouldHandleBusinessException() {
         BusinessException exception = new BusinessException("BUSINESS_ERROR", "Business error");
-
         ProblemDetail problemDetail = exceptionHandler.handleBusinessException(exception, httpServletRequest);
 
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
@@ -59,7 +60,6 @@ class TestGlobalExceptionHandler {
     @Test
     void shouldHandleTechnicalException() {
         TechnicalException exception = new TechnicalException("Technical failure");
-
         ProblemDetail problemDetail = exceptionHandler.handleTechnicalException(exception, httpServletRequest);
 
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -73,7 +73,6 @@ class TestGlobalExceptionHandler {
         BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "sampleDto");
 
         bindingResult.addError(new FieldError("sampleDto", "name", "Name is mandatory"));
-
         bindingResult.addError(new FieldError("sampleDto", "price", "Price is mandatory"));
 
         MethodArgumentNotValidException exception =
@@ -84,23 +83,83 @@ class TestGlobalExceptionHandler {
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(problemDetail.getTitle()).isEqualTo("Validation failed");
         assertThat(problemDetail.getDetail()).isEqualTo("One or more validation errors occurred.");
+        assertThat(problemDetail.getProperties()).containsEntry("path", "/api/v1/samples/1");
 
         @SuppressWarnings("unchecked")
         Map<String, String> errors =
                 (Map<String, String>) problemDetail.getProperties().get("errors");
-        assertThat(problemDetail.getProperties()).containsEntry("path", "/api/v1/samples/1");
+
         assertThat(errors).containsEntry("name", "Name is mandatory").containsEntry("price", "Price is mandatory");
+    }
+
+    @Test
+    void shouldHandleValidationExceptionWithoutFieldErrors() {
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "sampleDto");
+
+        MethodArgumentNotValidException exception =
+                new MethodArgumentNotValidException((MethodParameter) null, bindingResult);
+
+        ProblemDetail problemDetail = exceptionHandler.handleValidationException(exception, httpServletRequest);
+
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        assertThat(problemDetail.getTitle()).isEqualTo("Validation failed");
+        assertThat(problemDetail.getDetail()).isEqualTo("One or more validation errors occurred.");
+        assertThat(problemDetail.getProperties()).containsEntry("path", "/api/v1/samples/1");
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> errors =
+                (Map<String, String>) problemDetail.getProperties().get("errors");
+
+        assertThat(errors).isEmpty();
     }
 
     @Test
     void shouldHandleUnhandledException() {
         Exception exception = new RuntimeException("Unexpected error");
-
         ProblemDetail problemDetail = exceptionHandler.handleUnhandledException(exception, httpServletRequest);
 
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
         assertThat(problemDetail.getTitle()).isEqualTo("Unexpected error");
         assertThat(problemDetail.getDetail()).isEqualTo("An unexpected error occurred.");
         assertThat(problemDetail.getProperties()).containsEntry("path", "/api/v1/samples/1");
+    }
+
+    @Test
+    void shouldHandleUserNotFoundException() {
+        UserNotFoundException exception = new UserNotFoundException(1L);
+        ProblemDetail problemDetail = exceptionHandler.handleUserNotFound(exception, httpServletRequest);
+
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+        assertThat(problemDetail.getTitle()).isEqualTo("User not found");
+        assertThat(problemDetail.getDetail()).isEqualTo(exception.getMessage());
+        assertThat(problemDetail.getProperties()).containsEntry("path", "/api/v1/samples/1");
+    }
+
+    @Test
+    void shouldHandleVersionConflictException() {
+        VersionConflictException exception = new VersionConflictException(1L, 1L, 2L);
+        ProblemDetail problemDetail = exceptionHandler.handleVersionConflict(exception, httpServletRequest);
+
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+        assertThat(problemDetail.getTitle()).isEqualTo("Version conflict");
+        assertThat(problemDetail.getDetail()).isEqualTo(exception.getMessage());
+        assertThat(problemDetail.getProperties()).containsEntry("path", "/api/v1/samples/1");
+    }
+
+    @Test
+    void shouldHandleOptimisticLockingFailureException() {
+        ObjectOptimisticLockingFailureException exception =
+                new ObjectOptimisticLockingFailureException("SampleEntity", 1L);
+
+        ResponseEntity<ProblemDetail> response = exceptionHandler.handleOptimisticLock(exception);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+
+        ProblemDetail problemDetail = response.getBody();
+
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+        assertThat(problemDetail.getTitle()).isEqualTo("Version conflict");
+        assertThat(problemDetail.getDetail()).isEqualTo("The resource has been modified by another user");
     }
 }

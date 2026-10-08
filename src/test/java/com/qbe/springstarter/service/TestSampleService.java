@@ -6,12 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.entity.SampleEntity;
+import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.error.TechnicalException;
 import com.qbe.springstarter.error.VersionConflictException;
@@ -31,6 +33,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class TestSampleService {
@@ -66,7 +69,9 @@ class TestSampleService {
         @DisplayName("Doit créer une entité")
         void shouldCreateEntity() {
             when(sampleMapper.toEntity(sampleDto)).thenReturn(sampleEntity);
+
             when(sampleRepository.save(any(SampleEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
             when(sampleMapper.toDto(any(SampleEntity.class))).thenReturn(sampleDto);
 
             SampleDto result = sampleService.create(sampleDto);
@@ -82,7 +87,9 @@ class TestSampleService {
         @DisplayName("Doit lever une TechnicalException lorsqu'une erreur survient")
         void shouldThrowTechnicalException() {
             when(sampleMapper.toEntity(sampleDto)).thenThrow(new RuntimeException("boom"));
+
             assertThrows(TechnicalException.class, () -> sampleService.create(sampleDto));
+
             verify(sampleRepository, never()).save(any());
         }
     }
@@ -95,6 +102,7 @@ class TestSampleService {
         @DisplayName("Doit retourner le DTO lorsque l'entité existe")
         void shouldReturnDtoWhenEntityExists() {
             when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
             SampleDto result = sampleService.findById(1L);
@@ -109,7 +117,9 @@ class TestSampleService {
         @DisplayName("Doit lever une NotFoundException lorsque l'entité n'existe pas")
         void shouldThrowNotFoundExceptionWhenEntityDoesNotExist() {
             when(sampleRepository.findById(1L)).thenReturn(Optional.empty());
+
             assertThrows(NotFoundException.class, () -> sampleService.findById(1L));
+
             verify(sampleMapper, never()).toDto(any());
         }
     }
@@ -119,8 +129,8 @@ class TestSampleService {
     class FindAll {
 
         @Test
-        @DisplayName("Doit retourner une page de DTO")
-        void shouldReturnPageOfDtos() {
+        @DisplayName("Doit retourner une page de DTO sans filtres")
+        void shouldReturnPageOfDtosWithoutFilters() {
             SampleEntity entity2 = new SampleEntity();
             entity2.setId(2L);
             entity2.setName("Sample2");
@@ -132,11 +142,14 @@ class TestSampleService {
 
             Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity, entity2), pageable, 2);
 
-            when(sampleRepository.findAll(pageable)).thenReturn(entityPage);
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
             when(sampleMapper.toDto(entity2)).thenReturn(dto2);
 
-            Page<SampleDto> result = sampleService.findAll(pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
 
             assertEquals(2, result.getContent().size());
             assertEquals(sampleDto, result.getContent().get(0));
@@ -148,21 +161,23 @@ class TestSampleService {
             assertTrue(result.isFirst());
             assertTrue(result.isLast());
 
-            verify(sampleRepository).findAll(pageable);
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+
             verify(sampleMapper).toDto(sampleEntity);
             verify(sampleMapper).toDto(entity2);
         }
 
         @Test
-        @DisplayName("Doit transmettre la pagination au repository")
-        void shouldUseRequestedPagination() {
+        @DisplayName("Doit transmettre la pagination et le tri au repository")
+        void shouldUseRequestedPaginationAndSort() {
             Pageable pageable = PageRequest.of(2, 5, Sort.by("name").descending());
 
             Page<SampleEntity> entityPage = new PageImpl<>(List.of(), pageable, 12);
 
-            when(sampleRepository.findAll(pageable)).thenReturn(entityPage);
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
 
-            Page<SampleDto> result = sampleService.findAll(pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
 
             assertEquals(2, result.getNumber());
             assertEquals(5, result.getSize());
@@ -170,19 +185,22 @@ class TestSampleService {
             assertEquals(3, result.getTotalPages());
             assertFalse(result.isFirst());
             assertTrue(result.isLast());
+            assertEquals(Sort.by("name").descending(), result.getSort());
 
-            verify(sampleRepository).findAll(pageable);
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
         }
 
         @Test
         @DisplayName("Doit retourner une page vide lorsqu'aucune entité n'existe")
         void shouldReturnEmptyPage() {
             Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
+
             Page<SampleEntity> entityPage = new PageImpl<>(List.of(), pageable, 0);
 
-            when(sampleRepository.findAll(pageable)).thenReturn(entityPage);
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
 
-            Page<SampleDto> result = sampleService.findAll(pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
 
             assertTrue(result.isEmpty());
             assertEquals(0, result.getTotalElements());
@@ -190,21 +208,156 @@ class TestSampleService {
             assertEquals(0, result.getNumber());
             assertEquals(20, result.getSize());
 
-            verify(sampleRepository).findAll(pageable);
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+
             verify(sampleMapper, never()).toDto(any());
         }
 
         @Test
-        @DisplayName("Doit propager l'erreur lorsqu'une erreur survient")
-        void shouldHandleFindAllError() {
+        @DisplayName("Doit appliquer une recherche textuelle")
+        void shouldApplySearchFilter() {
+            String search = "sample";
+
+            Pageable pageable = PageRequest.of(0, 20, Sort.by("name").ascending());
+
+            Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
+
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            Page<SampleDto> result = sampleService.findAll(search, null, null, null, pageable);
+
+            assertEquals(1, result.getTotalElements());
+            assertEquals(sampleDto, result.getContent().getFirst());
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+
+            verify(sampleMapper).toDto(sampleEntity);
+        }
+
+        @Test
+        @DisplayName("Doit appliquer le filtre de statut")
+        void shouldApplyStatusFilter() {
             Pageable pageable = PageRequest.of(0, 20);
+
+            Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
+
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            Page<SampleDto> result = sampleService.findAll(null, Status.ACTIVE, null, null, pageable);
+
+            assertEquals(1, result.getTotalElements());
+            assertEquals(sampleDto, result.getContent().getFirst());
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+        }
+
+        @Test
+        @DisplayName("Doit appliquer le filtre de catégorie")
+        void shouldApplyCategoryFilter() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
+
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            Page<SampleDto> result = sampleService.findAll(null, null, 'A', null, pageable);
+
+            assertEquals(1, result.getTotalElements());
+            assertEquals(sampleDto, result.getContent().getFirst());
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+        }
+
+        @Test
+        @DisplayName("Doit appliquer le filtre active=true")
+        void shouldApplyActiveFilter() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
+
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            Page<SampleDto> result = sampleService.findAll(null, null, null, true, pageable);
+
+            assertEquals(1, result.getTotalElements());
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+        }
+
+        @Test
+        @DisplayName("Doit appliquer le filtre active=false")
+        void shouldApplyInactiveFilter() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
+
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            Page<SampleDto> result = sampleService.findAll(null, null, null, false, pageable);
+
+            assertEquals(1, result.getTotalElements());
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+        }
+
+        @Test
+        @DisplayName("Doit accepter tous les filtres simultanément")
+        void shouldApplyAllFilters() {
+            Pageable pageable = PageRequest.of(0, 8, Sort.by("price").descending());
+
+            Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
+
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(entityPage);
+
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            Page<SampleDto> result = sampleService.findAll("sample", Status.ACTIVE, 'A', true, pageable);
+
+            assertEquals(1, result.getTotalElements());
+            assertEquals(8, result.getSize());
+            assertEquals(sampleDto, result.getContent().getFirst());
+
+            assertEquals(Sort.by("price").descending(), result.getSort());
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+
+            verify(sampleMapper).toDto(sampleEntity);
+        }
+
+        @Test
+        @DisplayName("Doit propager l'erreur du repository")
+        void shouldPropagateFindAllError() {
+            Pageable pageable = PageRequest.of(0, 20);
+
             RuntimeException exception = new RuntimeException("Database error");
 
-            when(sampleRepository.findAll(pageable)).thenThrow(exception);
+            when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenThrow(exception);
 
-            RuntimeException thrown = assertThrows(RuntimeException.class, () -> sampleService.findAll(pageable));
+            RuntimeException thrown = assertThrows(
+                    RuntimeException.class, () -> sampleService.findAll("sample", Status.ACTIVE, 'A', true, pageable));
 
             assertEquals(exception, thrown);
+
+            verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
+
+            verify(sampleMapper, never()).toDto(any());
         }
     }
 
@@ -216,7 +369,9 @@ class TestSampleService {
         @DisplayName("Doit mettre à jour une entité existante")
         void shouldUpdateEntity() {
             when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+
             when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
             SampleDto result = sampleService.update(1L, sampleDto);
@@ -224,6 +379,7 @@ class TestSampleService {
             assertEquals(sampleDto, result);
 
             verify(sampleMapper).updateEntityFromDto(sampleDto, sampleEntity);
+
             verify(sampleRepository).saveAndFlush(sampleEntity);
         }
 
@@ -237,7 +393,9 @@ class TestSampleService {
             when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
 
             assertThrows(VersionConflictException.class, () -> sampleService.update(1L, outdatedDto));
+
             verify(sampleMapper, never()).updateEntityFromDto(any(), any());
+
             verify(sampleRepository, never()).saveAndFlush(any());
         }
 
@@ -245,7 +403,9 @@ class TestSampleService {
         @DisplayName("Doit lever une NotFoundException lorsque l'entité n'existe pas")
         void shouldThrowNotFoundExceptionWhenUpdatingMissingEntity() {
             when(sampleRepository.findById(1L)).thenReturn(Optional.empty());
+
             assertThrows(NotFoundException.class, () -> sampleService.update(1L, sampleDto));
+
             verify(sampleRepository, never()).saveAndFlush(any());
         }
     }
@@ -258,7 +418,9 @@ class TestSampleService {
         @DisplayName("Doit supprimer une entité existante")
         void shouldDeleteEntity() {
             when(sampleRepository.existsById(1L)).thenReturn(true);
+
             sampleService.delete(1L);
+
             verify(sampleRepository).deleteById(1L);
         }
 
@@ -266,7 +428,9 @@ class TestSampleService {
         @DisplayName("Doit lever une NotFoundException lorsque l'entité n'existe pas")
         void shouldThrowNotFoundExceptionWhenDeletingMissingEntity() {
             when(sampleRepository.existsById(1L)).thenReturn(false);
+
             assertThrows(NotFoundException.class, () -> sampleService.delete(1L));
+
             verify(sampleRepository, never()).deleteById(anyLong());
         }
     }

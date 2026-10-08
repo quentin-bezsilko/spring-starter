@@ -3,11 +3,13 @@ package com.qbe.springstarter.service;
 import com.qbe.springstarter.constants.SpringStarterConstants;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.entity.SampleEntity;
+import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.error.TechnicalException;
 import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.mapper.SampleMapper;
 import com.qbe.springstarter.repository.SampleRepository;
+import com.qbe.springstarter.spec.SampleSpecification;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -18,6 +20,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,19 +71,32 @@ public class SampleService implements ISampleService {
     }
 
     @Override
-    public Page<SampleDto> findAll(Pageable pageable) {
+    public Page<SampleDto> findAll(
+            String search, Status status, Character category, Boolean active, Pageable pageable) {
+
         try {
-            Page<SampleDto> result = sampleRepository.findAll(pageable).map(sampleMapper::toDto);
+            var specification = Specification.where(SampleSpecification.search(search))
+                    .and(SampleSpecification.hasStatus(status))
+                    .and(SampleSpecification.hasCategory(category))
+                    .and(SampleSpecification.isActive(active));
+
+            Page<SampleDto> result =
+                    sampleRepository.findAll(specification, pageable).map(sampleMapper::toDto);
 
             log.info(
-                    "SampleEntities retrieved successfully: page={}, size={}, totalElements={}",
+                    "SampleEntities retrieved successfully: search={}, status={}, category={}, active={}, "
+                            + "page={}, size={}, totalElements={}",
+                    search,
+                    status,
+                    category,
+                    active,
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
                     result.getTotalElements());
 
             return result;
         } catch (Exception e) {
-            log.error("Error during paginated findAll", e);
+            log.error("Error during filtered findAll", e);
             throw e;
         }
     }
