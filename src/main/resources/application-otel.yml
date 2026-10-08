@@ -1,0 +1,18 @@
+management:
+  tracing:
+    enabled: true
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    logging:
+      export:
+        enabled: true
+
+otel:
+  sdk:
+    disabled: ${OTEL_SDK_DISABLED:false}
+  service:
+    name: ${OTEL_SERVICE_NAME:${spring.application.name}}
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://otel-collector:4318}
