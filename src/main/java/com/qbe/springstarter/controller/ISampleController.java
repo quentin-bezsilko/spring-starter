@@ -81,4 +81,13 @@ public interface ISampleController {
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(
             @Parameter(description = "Unique identifier of the sample", example = "1") @PathVariable Long id);
+
+    @Operation(summary = "Duplicate a sample", description = "Requires WRITE authority.")
+    @ApiResponse(responseCode = "201", description = "Sample successfully duplicated")
+    @ApiResponse(responseCode = "401", description = "Authentication required")
+    @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
+    @ApiResponse(responseCode = "404", description = "Sample not found")
+    @PostMapping("/{id}/duplicate")
+    ResponseEntity<SampleDto> duplicate(
+            @Parameter(description = "Unique identifier of the sample", example = "1") @PathVariable Long id);
 }

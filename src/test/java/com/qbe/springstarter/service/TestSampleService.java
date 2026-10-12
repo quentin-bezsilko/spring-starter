@@ -1,9 +1,6 @@
 package com.qbe.springstarter.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,6 +18,7 @@ import com.qbe.springstarter.mapper.SampleMapper;
 import com.qbe.springstarter.repository.SampleRepository;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -57,6 +55,7 @@ class TestSampleService {
         sampleEntity.setId(1L);
         sampleEntity.setName("Sample");
         sampleEntity.setVersion(0L);
+        sampleEntity.setStatus(Status.ACTIVE);
 
         sampleService = new SampleService(sampleRepository, sampleMapper);
     }
@@ -432,6 +431,92 @@ class TestSampleService {
             assertThrows(NotFoundException.class, () -> sampleService.delete(1L));
 
             verify(sampleRepository, never()).deleteById(anyLong());
+        }
+    }
+
+    @Nested
+    @DisplayName("duplicate")
+    class Duplicate {
+
+        @Test
+        @DisplayName("Doit dupliquer une entité existante")
+        void shouldDuplicateEntity() {
+            SampleEntity duplicatedEntity = new SampleEntity();
+            duplicatedEntity.setId(2L);
+            duplicatedEntity.setName("Sample (copie)");
+            duplicatedEntity.setVersion(0L);
+
+            SampleDto duplicatedDto = SampleDto.builder()
+                    .id(2L)
+                    .name("Sample (copie)")
+                    .version(0L)
+                    .build();
+
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleMapper.duplicate(sampleEntity)).thenReturn(duplicatedEntity);
+            when(sampleRepository.save(any(SampleEntity.class))).thenReturn(duplicatedEntity);
+            when(sampleMapper.toDto(duplicatedEntity)).thenReturn(duplicatedDto);
+
+            SampleDto result = sampleService.duplicate(1L);
+            assertEquals(duplicatedDto, result);
+
+            verify(sampleRepository).findById(1L);
+            verify(sampleMapper).duplicate(sampleEntity);
+            verify(sampleRepository).save(duplicatedEntity);
+            verify(sampleMapper).toDto(duplicatedEntity);
+
+            assertEquals("Sample (copie)", duplicatedEntity.getName());
+            assertEquals(Status.CREATED, duplicatedEntity.getStatus());
+            assertNotNull(duplicatedEntity.getCreatedAt());
+            assertNotNull(duplicatedEntity.getUpdatedAt());
+            assertNotNull(duplicatedEntity.getExternalId());
+        }
+
+        @Test
+        @DisplayName("Doit générer un nouvel externalId")
+        void shouldGenerateNewExternalId() {
+            UUID sourceExternalId = UUID.randomUUID();
+
+            sampleEntity.setExternalId(sourceExternalId);
+
+            SampleEntity duplicatedEntity = new SampleEntity();
+
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleMapper.duplicate(sampleEntity)).thenReturn(duplicatedEntity);
+            when(sampleRepository.save(any(SampleEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(sampleMapper.toDto(any(SampleEntity.class))).thenReturn(sampleDto);
+
+            sampleService.duplicate(1L);
+
+            assertNotNull(duplicatedEntity.getExternalId());
+            assertNotEquals(sourceExternalId, duplicatedEntity.getExternalId());
+        }
+
+        @Test
+        @DisplayName("Doit réinitialiser le statut à CREATED")
+        void shouldResetStatusToCreated() {
+            sampleEntity.setStatus(Status.ACTIVE);
+
+            SampleEntity duplicatedEntity = new SampleEntity();
+
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleMapper.duplicate(sampleEntity)).thenReturn(duplicatedEntity);
+            when(sampleRepository.save(any(SampleEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(sampleMapper.toDto(any(SampleEntity.class))).thenReturn(sampleDto);
+
+            sampleService.duplicate(1L);
+            assertEquals(Status.CREATED, duplicatedEntity.getStatus());
+        }
+
+        @Test
+        @DisplayName("Doit lever une NotFoundException lorsque l'entité à dupliquer n'existe pas")
+        void shouldThrowNotFoundExceptionWhenDuplicatingMissingEntity() {
+            when(sampleRepository.findById(1L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> sampleService.duplicate(1L));
+
+            verify(sampleMapper, never()).duplicate(any());
+            verify(sampleRepository, never()).save(any());
         }
     }
 }

@@ -26,4 +26,11 @@ public interface SampleMapper {
     @Mapping(target = "version", ignore = true)
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateEntityFromDto(SampleDto dto, @MappingTarget SampleEntity entity);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "externalId", ignore = true)
+    SampleEntity duplicate(SampleEntity entity);
 }

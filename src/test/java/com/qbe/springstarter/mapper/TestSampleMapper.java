@@ -190,6 +190,43 @@ class TestSampleMapper {
         assertThat(entity.getVersion()).isEqualTo(version);
     }
 
+    @Test
+    void shouldDuplicateEntityAndCopyBusinessFields() {
+        SampleEntity entity = buildEntity();
+
+        SampleEntity duplicated = sampleMapper.duplicate(entity);
+
+        assertThat(duplicated).isNotNull();
+
+        assertThat(duplicated.getName()).isEqualTo(entity.getName());
+        assertThat(duplicated.getDescription()).isEqualTo(entity.getDescription());
+        assertThat(duplicated.getQuantity()).isEqualTo(entity.getQuantity());
+        assertThat(duplicated.getStock()).isEqualTo(entity.getStock());
+        assertThat(duplicated.getWeight()).isEqualTo(entity.getWeight());
+        assertThat(duplicated.getRatio()).isEqualTo(entity.getRatio());
+        assertThat(duplicated.getPrice()).isEqualTo(entity.getPrice());
+        assertThat(duplicated.getActive()).isEqualTo(entity.getActive());
+        assertThat(duplicated.getCategory()).isEqualTo(entity.getCategory());
+        assertThat(duplicated.getManufacturedDate()).isEqualTo(entity.getManufacturedDate());
+        assertThat(duplicated.getManufacturedTime()).isEqualTo(entity.getManufacturedTime());
+        assertThat(duplicated.getDocument()).containsExactly(entity.getDocument());
+        assertThat(duplicated.getComments()).isEqualTo(entity.getComments());
+        assertThat(duplicated.getStatus()).isEqualTo(entity.getStatus());
+    }
+
+    @Test
+    void shouldIgnoreTechnicalFieldsDuringDuplicate() {
+        SampleEntity entity = buildEntity();
+
+        SampleEntity duplicated = sampleMapper.duplicate(entity);
+
+        assertThat(duplicated.getId()).isNull();
+        assertThat(duplicated.getCreatedAt()).isNull();
+        assertThat(duplicated.getUpdatedAt()).isNull();
+        assertThat(duplicated.getVersion()).isNull();
+        assertThat(duplicated.getExternalId()).isNull();
+    }
+
     private SampleDto buildDto() {
         return SampleDto.builder()
                 .id(1L)

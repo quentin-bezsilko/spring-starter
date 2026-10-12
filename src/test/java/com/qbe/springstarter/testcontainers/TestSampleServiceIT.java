@@ -414,7 +414,6 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     @Test
     void shouldUpdateSample() {
         SampleDto created = sampleService.create(buildSampleDto("SERVICE-PRODUCT-004-" + UUID.randomUUID()));
-
         assertThat(created.version()).isZero();
 
         UUID uuidUpdate = UUID.randomUUID();
@@ -433,26 +432,19 @@ class TestSampleServiceIT extends TestAbstractIntegration {
                 .build();
 
         SampleDto updated = sampleService.update(created.id(), updatedDto);
-
         SampleEntity persisted = sampleRepository.findById(created.id()).orElseThrow();
 
         assertThat(updated.name()).isEqualTo("UPDATED_SERVICE_PRODUCT-" + uuidUpdate);
-
         assertThat(updated.description()).isEqualTo("Updated description");
-
         assertThat(updated.quantity()).isEqualTo(200);
-
         assertThat(persisted.getVersion()).isEqualTo(1L);
-
         assertThat(updated.version()).isEqualTo(1L);
     }
 
     @Test
     void shouldThrowVersionConflictWhenUpdatingWithOutdatedVersion() {
         SampleDto created = sampleService.create(buildSampleDto("SERVICE-VERSION-CONFLICT-" + UUID.randomUUID()));
-
         SampleDto firstUpdate = created.toBuilder().name("SERVICE-FIRST-UPDATE").build();
-
         SampleDto updated = sampleService.update(created.id(), firstUpdate);
 
         assertThat(updated.version()).isGreaterThan(created.version());
@@ -487,5 +479,45 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     @Test
     void shouldThrowNotFoundWhenDeletingUnknownSample() {
         assertThatThrownBy(() -> sampleService.delete(999999L)).isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldDuplicateSample() {
+        SampleDto created = sampleService.create(buildSampleDto("SERVICE-DUPLICATE-" + UUID.randomUUID()).toBuilder()
+                .status(Status.ACTIVE)
+                .build());
+
+        SampleDto duplicated = sampleService.duplicate(created.id());
+        assertThat(duplicated).isNotNull();
+
+        assertThat(duplicated.id()).isNotNull();
+        assertThat(duplicated.id()).isNotEqualTo(created.id());
+        assertThat(duplicated.name()).isEqualTo(created.name() + " (copie)");
+        assertThat(duplicated.externalId()).isNotNull();
+        assertThat(duplicated.externalId()).isNotEqualTo(created.externalId());
+        assertThat(duplicated.status()).isEqualTo(Status.CREATED);
+        assertThat(duplicated.version()).isZero();
+        assertThat(duplicated.description()).isEqualTo(created.description());
+        assertThat(duplicated.quantity()).isEqualTo(created.quantity());
+        assertThat(duplicated.stock()).isEqualTo(created.stock());
+        assertThat(duplicated.price()).isEqualByComparingTo(created.price());
+    }
+
+    @Test
+    void shouldThrowNotFoundWhenDuplicatingUnknownSample() {
+        assertThatThrownBy(() -> sampleService.duplicate(999999L)).isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void shouldPersistDuplicatedSample() {
+        SampleDto created = sampleService.create(buildSampleDto("SERVICE-PERSIST-DUPLICATE-" + UUID.randomUUID()));
+        SampleDto duplicated = sampleService.duplicate(created.id());
+        SampleEntity persisted = sampleRepository.findById(duplicated.id()).orElseThrow();
+
+        assertThat(persisted.getId()).isEqualTo(duplicated.id());
+        assertThat(persisted.getName()).isEqualTo(created.name() + " (copie)");
+        assertThat(persisted.getExternalId()).isNotNull();
+        assertThat(persisted.getExternalId()).isNotEqualTo(created.externalId());
+        assertThat(persisted.getStatus()).isEqualTo(Status.CREATED);
     }
 }

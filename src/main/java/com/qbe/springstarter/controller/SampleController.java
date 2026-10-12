@@ -68,4 +68,11 @@ public class SampleController implements ISampleController {
         service.delete(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.DUPLICATE)
+    public ResponseEntity<SampleDto> duplicate(Long id) {
+        log.info("Duplicating SampleEntity id={}", id);
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.duplicate(id));
+    }
 }

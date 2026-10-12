@@ -15,4 +15,6 @@ public interface ISampleService {
     SampleDto update(Long id, SampleDto dto);
 
     void delete(Long id);
+
+    SampleDto duplicate(Long id);
 }

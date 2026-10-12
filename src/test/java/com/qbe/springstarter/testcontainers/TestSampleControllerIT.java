@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.enums.Status;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,5 +142,39 @@ class TestSampleControllerIT extends TestAbstractIntegration {
         SampleDto created = objectMapper.readValue(response, SampleDto.class);
 
         mockMvc.perform(delete("/api/v1/samples/{id}", created.id())).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void shouldDuplicateSample() throws Exception {
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("CONTROLLER-PRODUCT-DUPLICATE"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        SampleDto created = objectMapper.readValue(createResult.getResponse().getContentAsString(), SampleDto.class);
+
+        MvcResult duplicateResult = mockMvc.perform(post("/api/v1/samples/{id}/duplicate", created.id()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.name").value("CONTROLLER-PRODUCT-DUPLICATE (copie)"))
+                .andExpect(jsonPath("$.status").value(Status.CREATED.name()))
+                .andReturn();
+
+        SampleDto duplicated =
+                objectMapper.readValue(duplicateResult.getResponse().getContentAsString(), SampleDto.class);
+
+        assert duplicated.id() != null;
+        assert !duplicated.id().equals(created.id());
+
+        assert duplicated.externalId() != null;
+        assert !duplicated.externalId().equals(created.externalId());
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenDuplicatingUnknownSample() throws Exception {
+        mockMvc.perform(post("/api/v1/samples/{id}/duplicate", 999999L)).andExpect(status().isNotFound());
     }
 }

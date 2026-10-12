@@ -324,4 +324,42 @@ class TestSampleController {
             verify(sampleService).delete(1L);
         }
     }
+
+    @Nested
+    @DisplayName("duplicate")
+    class Duplicate {
+
+        @Test
+        @DisplayName("Doit retourner 201 avec le DTO dupliqué")
+        void shouldDuplicateSample() {
+            SampleDto duplicatedDto =
+                    SampleDto.builder().id(2L).name("Sample (copie)").build();
+
+            when(sampleService.duplicate(1L)).thenReturn(duplicatedDto);
+
+            ResponseEntity<SampleDto> response = sampleController.duplicate(1L);
+
+            assertEquals(HttpStatus.CREATED, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals(duplicatedDto, response.getBody());
+
+            verify(sampleService).duplicate(1L);
+        }
+
+        @Test
+        @DisplayName("Doit retourner le DTO créé par le service")
+        void shouldReturnDuplicatedDto() {
+            SampleDto duplicatedDto =
+                    SampleDto.builder().id(99L).name("My Sample (copie)").build();
+
+            when(sampleService.duplicate(42L)).thenReturn(duplicatedDto);
+
+            ResponseEntity<SampleDto> response = sampleController.duplicate(42L);
+
+            assertEquals(99L, response.getBody().id());
+            assertEquals("My Sample (copie)", response.getBody().name());
+
+            verify(sampleService).duplicate(42L);
+        }
+    }
 }

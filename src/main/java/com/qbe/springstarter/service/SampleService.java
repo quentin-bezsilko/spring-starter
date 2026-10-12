@@ -13,6 +13,7 @@ import com.qbe.springstarter.spec.SampleSpecification;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -143,5 +144,24 @@ public class SampleService implements ISampleService {
             log.error("Error during delete", e);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    @CachePut(value = "samples", key = "#result.id")
+    public SampleDto duplicate(Long id) {
+        SampleEntity entity = sampleRepository
+                .findById(id)
+                .orElseThrow(() -> new NotFoundException(SpringStarterConstants.SAMPLE_ENTITY_RESOURCE_NAME, id));
+
+        SampleEntity duplicatedEntity = sampleMapper.duplicate(entity);
+        duplicatedEntity.setName(entity.getName() + " (copie)");
+        duplicatedEntity.setExternalId(UUID.randomUUID());
+        duplicatedEntity.setStatus(Status.CREATED);
+        duplicatedEntity.setCreatedAt(LocalDateTime.now());
+        duplicatedEntity.setUpdatedAt(Instant.now());
+        duplicatedEntity = sampleRepository.save(duplicatedEntity);
+        log.info("Sample duplicated successfully sourceId={} duplicatedId={}", id, duplicatedEntity.getId());
+        return sampleMapper.toDto(duplicatedEntity);
     }
 }
