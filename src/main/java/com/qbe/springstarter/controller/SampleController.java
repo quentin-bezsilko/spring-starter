@@ -6,11 +6,14 @@ import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.metrics.annotation.SampleMetricAnnotation;
 import com.qbe.springstarter.service.SampleService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -74,5 +77,17 @@ public class SampleController implements ISampleController {
     public ResponseEntity<SampleDto> duplicate(Long id) {
         log.info("Duplicating SampleEntity id={}", id);
         return ResponseEntity.status(HttpStatus.CREATED).body(service.duplicate(id));
+    }
+
+    @Override
+    public ResponseEntity<byte[]> export(String search, Status status, Character category, Boolean active) {
+        log.info("Exporting samples search={}, status={}, category={}, active={}", search, status, category, active);
+        String fileName = "samples-" + LocalDate.now() + ".xlsx";
+        byte[] file = service.export(search, status, category, active);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
     }
 }

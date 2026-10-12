@@ -1,9 +1,6 @@
 package com.qbe.springstarter.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +8,7 @@ import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.service.SampleService;
 import java.util.List;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -24,6 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -360,6 +359,60 @@ class TestSampleController {
             assertEquals("My Sample (copie)", response.getBody().name());
 
             verify(sampleService).duplicate(42L);
+        }
+    }
+
+    @Nested
+    @DisplayName("export")
+    class Export {
+
+        @Test
+        @DisplayName("Doit retourner 200 avec le fichier Excel")
+        void shouldExportSamples() {
+            byte[] file = "excel-content".getBytes();
+            when(sampleService.export(null, null, null, null)).thenReturn(file);
+            ResponseEntity<byte[]> response = sampleController.export(null, null, null, null);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertArrayEquals(file, response.getBody());
+
+            verify(sampleService).export(null, null, null, null);
+        }
+
+        @Test
+        @DisplayName("Doit transmettre les filtres au service")
+        void shouldExportSamplesWithFilters() {
+
+            byte[] file = "excel-content".getBytes();
+
+            when(sampleService.export("sample", Status.ACTIVE, 'A', true)).thenReturn(file);
+
+            ResponseEntity<byte[]> response = sampleController.export("sample", Status.ACTIVE, 'A', true);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
+
+            verify(sampleService).export("sample", Status.ACTIVE, 'A', true);
+        }
+
+        @Test
+        @DisplayName("Doit retourner les headers de téléchargement Excel")
+        void shouldReturnExcelHeaders() {
+
+            byte[] file = new byte[] {1, 2, 3};
+
+            when(sampleService.export(null, null, null, null)).thenReturn(file);
+
+            ResponseEntity<byte[]> response = sampleController.export(null, null, null, null);
+
+            assertEquals(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    Objects.requireNonNull(response.getHeaders().getContentType())
+                            .toString());
+            assertNotNull(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
+            assertTrue(Objects.requireNonNull(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
+                    .startsWith("attachment; filename=samples-"));
         }
     }
 }

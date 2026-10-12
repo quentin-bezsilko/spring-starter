@@ -11,6 +11,7 @@ public final class MetricsConstants {
     public static final String UPDATE = "update";
     public static final String DELETE = "delete";
     public static final String DUPLICATE = "duplicate";
+    public static final String EXPORT = "export";
 
     // Metric names
     public static final String OPERATIONS_TOTAL = "sample_operations_total";

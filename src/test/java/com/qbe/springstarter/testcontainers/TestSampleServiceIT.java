@@ -10,8 +10,11 @@ import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.repository.SampleRepository;
 import com.qbe.springstarter.service.SampleService;
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.util.UUID;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -519,5 +522,65 @@ class TestSampleServiceIT extends TestAbstractIntegration {
         assertThat(persisted.getExternalId()).isNotNull();
         assertThat(persisted.getExternalId()).isNotEqualTo(created.externalId());
         assertThat(persisted.getStatus()).isEqualTo(Status.CREATED);
+    }
+
+    @Test
+    void shouldExportSamples() throws Exception {
+        sampleService.create(buildSampleDto("EXPORT-SERVICE-" + UUID.randomUUID()));
+        byte[] result = sampleService.export(null, null, null, null);
+        assertThat(result).isNotNull();
+        assertThat(result.length).isGreaterThan(0);
+    }
+
+    @Test
+    void shouldGenerateValidExcelWorkbook() throws Exception {
+        sampleService.create(buildSampleDto("EXPORT-WORKBOOK-" + UUID.randomUUID()));
+        byte[] result = sampleService.export(null, null, null, null);
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
+            assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
+            assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("Samples");
+        }
+    }
+
+    @Test
+    void shouldGenerateExpectedHeaders() throws Exception {
+        sampleService.create(buildSampleDto("EXPORT-HEADERS-" + UUID.randomUUID()));
+
+        byte[] result = sampleService.export(null, null, null, null);
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
+            var headerRow = workbook.getSheetAt(0).getRow(0);
+            assertThat(headerRow.getCell(0).getStringCellValue()).isEqualTo("Id");
+            assertThat(headerRow.getCell(1).getStringCellValue()).isEqualTo("Nom");
+            assertThat(headerRow.getCell(2).getStringCellValue()).isEqualTo("Description");
+            assertThat(headerRow.getCell(3).getStringCellValue()).isEqualTo("Statut");
+        }
+    }
+
+    @Test
+    void shouldExportOnlyFilteredSamples() throws Exception {
+        String marker = UUID.randomUUID().toString();
+        sampleService.create(buildSampleDto("EXPORT-ACTIVE-" + marker).toBuilder()
+                .status(Status.ACTIVE)
+                .build());
+        sampleService.create(buildSampleDto("EXPORT-ARCHIVED-" + marker).toBuilder()
+                .status(Status.ARCHIVED)
+                .externalId(UUID.randomUUID())
+                .build());
+
+        byte[] result = sampleService.export(marker, Status.ACTIVE, null, null);
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
+            var sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getLastRowNum()).isEqualTo(1);
+            assertThat(sheet.getRow(1).getCell(1).getStringCellValue()).contains("EXPORT-ACTIVE");
+        }
+    }
+
+    @Test
+    void shouldExportEmptyWorkbookWhenNoDataMatches() throws Exception {
+        byte[] result = sampleService.export("NOT-FOUND-" + UUID.randomUUID(), null, null, null);
+        try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
+            var sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getLastRowNum()).isZero();
+        }
     }
 }

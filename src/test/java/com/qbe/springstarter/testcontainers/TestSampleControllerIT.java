@@ -1,16 +1,20 @@
 package com.qbe.springstarter.testcontainers;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
+import java.io.ByteArrayInputStream;
 import java.util.UUID;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -176,5 +180,68 @@ class TestSampleControllerIT extends TestAbstractIntegration {
     @Test
     void shouldReturnNotFoundWhenDuplicatingUnknownSample() throws Exception {
         mockMvc.perform(post("/api/v1/samples/{id}/duplicate", 999999L)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldExportSamples() throws Exception {
+        mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("CONTROLLER-EXPORT-001"))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/samples/export"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.CONTENT_DISPOSITION))
+                .andExpect(header().string(
+                                HttpHeaders.CONTENT_TYPE,
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @Test
+    void shouldExportSamplesWithFilters() throws Exception {
+        mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("ACTIVE-EXPORT-SAMPLE"))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/samples/export").param("search", "ACTIVE").param("status", Status.ACTIVE.name()))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.CONTENT_DISPOSITION));
+    }
+
+    @Test
+    void shouldReturnExcelFileContent() throws Exception {
+        mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("CONTROLLER-EXPORT-CONTENT"))))
+                .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/samples/export"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        byte[] content = result.getResponse().getContentAsByteArray();
+
+        assertNotNull(content);
+        assertNotEquals(0, content.length);
+    }
+
+    @Test
+    void shouldGenerateValidExcelWorkbook() throws Exception {
+        mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("CONTROLLER-EXPORT-WORKBOOK"))))
+                .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/samples/export"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        try (Workbook workbook =
+                new XSSFWorkbook(new ByteArrayInputStream(result.getResponse().getContentAsByteArray()))) {
+            assertEquals("Samples", workbook.getSheetAt(0).getSheetName());
+            assertEquals("Id", workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue());
+            assertEquals("Nom", workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue());
+        }
     }
 }

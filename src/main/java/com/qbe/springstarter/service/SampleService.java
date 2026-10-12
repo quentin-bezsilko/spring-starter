@@ -10,12 +10,18 @@ import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.mapper.SampleMapper;
 import com.qbe.springstarter.repository.SampleRepository;
 import com.qbe.springstarter.spec.SampleSpecification;
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -74,13 +80,8 @@ public class SampleService implements ISampleService {
     @Override
     public Page<SampleDto> findAll(
             String search, Status status, Character category, Boolean active, Pageable pageable) {
-
         try {
-            var specification = Specification.where(SampleSpecification.search(search))
-                    .and(SampleSpecification.hasStatus(status))
-                    .and(SampleSpecification.hasCategory(category))
-                    .and(SampleSpecification.isActive(active));
-
+            var specification = buildSpecification(search, status, category, active);
             Page<SampleDto> result =
                     sampleRepository.findAll(specification, pageable).map(sampleMapper::toDto);
 
@@ -163,5 +164,96 @@ public class SampleService implements ISampleService {
         duplicatedEntity = sampleRepository.save(duplicatedEntity);
         log.info("Sample duplicated successfully sourceId={} duplicatedId={}", id, duplicatedEntity.getId());
         return sampleMapper.toDto(duplicatedEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] export(String search, Status status, Character category, Boolean active) {
+        try {
+            Specification<SampleEntity> specification = buildSpecification(search, status, category, active);
+            var samples = sampleRepository.findAll(specification);
+            try (Workbook workbook = new XSSFWorkbook();
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                Sheet sheet = workbook.createSheet("Samples");
+                Row headerRow = sheet.createRow(0);
+
+                String[] headers = {
+                    "Id",
+                    "Nom",
+                    "Description",
+                    "Statut",
+                    "Categorie",
+                    "Quantite",
+                    "Stock",
+                    "Prix",
+                    "Actif",
+                    "Date creation"
+                };
+
+                for (int i = 0; i < headers.length; i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(headers[i]);
+                }
+
+                int rowIndex = 1;
+                for (SampleEntity sample : samples) {
+                    Row row = sheet.createRow(rowIndex++);
+                    row.createCell(0).setCellValue(sample.getId());
+                    row.createCell(1).setCellValue(sample.getName());
+                    row.createCell(2).setCellValue(sample.getDescription() != null ? sample.getDescription() : "");
+                    row.createCell(3)
+                            .setCellValue(
+                                    sample.getStatus() != null
+                                            ? sample.getStatus().name()
+                                            : "");
+                    row.createCell(4)
+                            .setCellValue(
+                                    sample.getCategory() != null
+                                            ? sample.getCategory().toString()
+                                            : "");
+                    row.createCell(5).setCellValue(sample.getQuantity() != null ? sample.getQuantity() : 0);
+                    row.createCell(6).setCellValue(sample.getStock() != null ? sample.getStock() : 0);
+                    row.createCell(7)
+                            .setCellValue(
+                                    sample.getPrice() != null
+                                            ? sample.getPrice().doubleValue()
+                                            : 0d);
+                    row.createCell(8).setCellValue(Boolean.TRUE.equals(sample.getActive()));
+
+                    row.createCell(9)
+                            .setCellValue(
+                                    sample.getCreatedAt() != null
+                                            ? sample.getCreatedAt().toString()
+                                            : "");
+                }
+
+                for (int i = 0; i < headers.length; i++) {
+                    sheet.autoSizeColumn(i);
+                }
+
+                workbook.write(outputStream);
+
+                log.info(
+                        "Samples exported successfully: search={}, status={}, category={}, active={}, count={}",
+                        search,
+                        status,
+                        category,
+                        active,
+                        samples.size());
+
+                return outputStream.toByteArray();
+            }
+        } catch (Exception e) {
+            log.error("Error during samples export", e);
+            throw new TechnicalException("Failed to export samples");
+        }
+    }
+
+    private Specification<SampleEntity> buildSpecification(
+            String search, Status status, Character category, Boolean active) {
+        return Specification.where(SampleSpecification.search(search))
+                .and(SampleSpecification.hasStatus(status))
+                .and(SampleSpecification.hasCategory(category))
+                .and(SampleSpecification.isActive(active));
     }
 }

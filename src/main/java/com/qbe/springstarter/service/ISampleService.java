@@ -17,4 +17,6 @@ public interface ISampleService {
     void delete(Long id);
 
     SampleDto duplicate(Long id);
+
+    byte[] export(String search, Status status, Character category, Boolean active);
 }

@@ -90,4 +90,18 @@ public interface ISampleController {
     @PostMapping("/{id}/duplicate")
     ResponseEntity<SampleDto> duplicate(
             @Parameter(description = "Unique identifier of the sample", example = "1") @PathVariable Long id);
+
+    @Operation(
+            summary = "Export samples",
+            description = "Export filtered samples to an Excel file. Requires READ authority.")
+    @ApiResponse(responseCode = "200", description = "Excel file successfully generated")
+    @ApiResponse(responseCode = "401", description = "Authentication required")
+    @ApiResponse(responseCode = "403", description = "Missing READ authority")
+    @ApiResponse(responseCode = "404", description = "Sample not found")
+    @GetMapping("/export")
+    ResponseEntity<byte[]> export(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Status status,
+            @RequestParam(required = false) Character category,
+            @RequestParam(required = false) Boolean active);
 }

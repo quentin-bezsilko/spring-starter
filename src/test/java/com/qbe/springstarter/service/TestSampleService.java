@@ -519,4 +519,58 @@ class TestSampleService {
             verify(sampleRepository, never()).save(any());
         }
     }
+
+    @Nested
+    @DisplayName("export")
+    class Export {
+
+        @Test
+        @DisplayName("Doit exporter les samples dans un fichier Excel")
+        void shouldExportSamples() {
+            sampleEntity.setDescription("Description");
+            sampleEntity.setCategory('A');
+            sampleEntity.setQuantity(10);
+            sampleEntity.setStock(100L);
+            sampleEntity.setActive(true);
+
+            when(sampleRepository.findAll(any(Specification.class))).thenReturn(List.of(sampleEntity));
+
+            byte[] result = sampleService.export(null, null, null, null);
+
+            assertNotNull(result);
+            assertTrue(result.length > 0);
+            verify(sampleRepository).findAll(any(Specification.class));
+        }
+
+        @Test
+        @DisplayName("Doit exporter un fichier Excel même sans données")
+        void shouldExportEmptyExcelFile() {
+            when(sampleRepository.findAll(any(Specification.class))).thenReturn(List.of());
+            byte[] result = sampleService.export(null, null, null, null);
+
+            assertNotNull(result);
+            assertTrue(result.length > 0);
+            verify(sampleRepository).findAll(any(Specification.class));
+        }
+
+        @Test
+        @DisplayName("Doit transmettre les filtres au repository")
+        void shouldExportWithFilters() {
+            when(sampleRepository.findAll(any(Specification.class))).thenReturn(List.of(sampleEntity));
+            byte[] result = sampleService.export("sample", Status.ACTIVE, 'A', true);
+
+            assertNotNull(result);
+            assertTrue(result.length > 0);
+
+            verify(sampleRepository).findAll(any(Specification.class));
+        }
+
+        @Test
+        @DisplayName("Doit lever une TechnicalException lorsqu'une erreur survient")
+        void shouldThrowTechnicalExceptionWhenExportFails() {
+            when(sampleRepository.findAll(any(Specification.class))).thenThrow(new RuntimeException("boom"));
+            assertThrows(TechnicalException.class, () -> sampleService.export(null, null, null, null));
+            verify(sampleRepository).findAll(any(Specification.class));
+        }
+    }
 }
