@@ -80,6 +80,7 @@ public class SampleController implements ISampleController {
     }
 
     @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.EXPORT)
     public ResponseEntity<byte[]> export(String search, Status status, Character category, Boolean active) {
         log.info("Exporting samples search={}, status={}, category={}, active={}", search, status, category, active);
         String fileName = "samples-" + LocalDate.now() + ".xlsx";

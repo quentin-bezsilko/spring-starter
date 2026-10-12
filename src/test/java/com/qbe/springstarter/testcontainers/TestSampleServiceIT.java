@@ -462,9 +462,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     @Test
     void shouldDeleteSample() {
         SampleDto created = sampleService.create(buildSampleDto("SERVICE-PRODUCT-005-" + UUID.randomUUID()));
-
         sampleService.delete(created.id());
-
         assertThat(sampleRepository.existsById(created.id())).isFalse();
     }
 
@@ -492,7 +490,6 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         SampleDto duplicated = sampleService.duplicate(created.id());
         assertThat(duplicated).isNotNull();
-
         assertThat(duplicated.id()).isNotNull();
         assertThat(duplicated.id()).isNotEqualTo(created.id());
         assertThat(duplicated.name()).isEqualTo(created.name() + " (copie)");
@@ -553,6 +550,11 @@ class TestSampleServiceIT extends TestAbstractIntegration {
             assertThat(headerRow.getCell(1).getStringCellValue()).isEqualTo("Nom");
             assertThat(headerRow.getCell(2).getStringCellValue()).isEqualTo("Description");
             assertThat(headerRow.getCell(3).getStringCellValue()).isEqualTo("Statut");
+            assertThat(headerRow.getCell(7).getStringCellValue()).isEqualTo("Poids");
+            assertThat(headerRow.getCell(8).getStringCellValue()).isEqualTo("Ratio");
+            assertThat(headerRow.getCell(13).getStringCellValue()).isEqualTo("Commentaires");
+            assertThat(headerRow.getCell(14).getStringCellValue()).isEqualTo("ExternalId");
+            assertThat(headerRow.getCell(17).getStringCellValue()).isEqualTo("Version");
         }
     }
 

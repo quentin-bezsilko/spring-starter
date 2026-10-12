@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class UserController implements IUserController {
 
-    private final UserService service;
+    private final UserService userService;
 
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUser(@PathVariable Long id) {
         log.info("Finding UserEntity by id={}", id);
-        return ResponseEntity.status(HttpStatus.OK).body(service.getUser(id));
+        return ResponseEntity.status(HttpStatus.OK).body(userService.getUser(id));
     }
 }

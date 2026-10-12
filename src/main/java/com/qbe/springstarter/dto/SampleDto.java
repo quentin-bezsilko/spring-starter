@@ -41,7 +41,7 @@ public record SampleDto(
         @PastOrPresent(message = "Created date cannot be in the future") LocalDateTime createdAt,
         @PastOrPresent(message = "Updated date cannot be in the future") Instant updatedAt,
         @NotNull(message = "External ID is mandatory") UUID externalId,
-        @NotNull(message = "Document is mandatory") byte[] document,
+        byte[] document,
         @Size(max = 5000, message = "Comments cannot exceed 5000 characters") String comments,
         @NotNull(message = "Status is mandatory") Status status,
         @NotNull(message = "Version is mandatory") Long version)

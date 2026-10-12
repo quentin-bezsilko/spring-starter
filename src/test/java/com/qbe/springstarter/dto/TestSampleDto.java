@@ -91,19 +91,17 @@ class TestSampleDto {
     @Test
     void shouldFailWhenStatusIsNull() {
         SampleDto dto = buildValidDto().toBuilder().status(null).build();
-
         Set<ConstraintViolation<SampleDto>> violations = validator.validate(dto);
-
         assertThat(violations).extracting(ConstraintViolation::getMessage).contains("Status is mandatory");
     }
 
     @Test
-    void shouldFailWhenDocumentIsNull() {
+    void shouldAcceptNullDocument() {
         SampleDto dto = buildValidDto().toBuilder().document(null).build();
 
         Set<ConstraintViolation<SampleDto>> violations = validator.validate(dto);
 
-        assertThat(violations).extracting(ConstraintViolation::getMessage).contains("Document is mandatory");
+        assertThat(violations).extracting(ConstraintViolation::getMessage).doesNotContain("Document is mandatory");
     }
 
     @Test

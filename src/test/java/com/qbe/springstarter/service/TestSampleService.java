@@ -299,18 +299,14 @@ class TestSampleService {
         @DisplayName("Doit appliquer le filtre active=false")
         void shouldApplyInactiveFilter() {
             Pageable pageable = PageRequest.of(0, 20);
-
             Page<SampleEntity> entityPage = new PageImpl<>(List.of(sampleEntity), pageable, 1);
 
             when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
                     .thenReturn(entityPage);
-
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
             Page<SampleDto> result = sampleService.findAll(null, null, null, false, pageable);
-
             assertEquals(1, result.getTotalElements());
-
             verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
         }
 
@@ -331,11 +327,9 @@ class TestSampleService {
             assertEquals(1, result.getTotalElements());
             assertEquals(8, result.getSize());
             assertEquals(sampleDto, result.getContent().getFirst());
-
             assertEquals(Sort.by("price").descending(), result.getSort());
 
             verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
-
             verify(sampleMapper).toDto(sampleEntity);
         }
 

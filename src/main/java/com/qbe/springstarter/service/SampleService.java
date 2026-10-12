@@ -39,6 +39,27 @@ public class SampleService implements ISampleService {
     private final SampleRepository sampleRepository;
     private final SampleMapper sampleMapper;
 
+    private static final String[] HEADERS = {
+        "Id",
+        "Nom",
+        "Description",
+        "Statut",
+        "Categorie",
+        "Quantite",
+        "Stock",
+        "Poids",
+        "Ratio",
+        "Prix",
+        "Actif",
+        "Date fabrication",
+        "Heure fabrication",
+        "Commentaires",
+        "ExternalId",
+        "Date creation",
+        "Date modification",
+        "Version"
+    };
+
     @Override
     @CachePut(value = "samples", key = "#result.id")
     public SampleDto create(SampleDto dto) {
@@ -177,29 +198,17 @@ public class SampleService implements ISampleService {
                 Sheet sheet = workbook.createSheet("Samples");
                 Row headerRow = sheet.createRow(0);
 
-                String[] headers = {
-                    "Id",
-                    "Nom",
-                    "Description",
-                    "Statut",
-                    "Categorie",
-                    "Quantite",
-                    "Stock",
-                    "Prix",
-                    "Actif",
-                    "Date creation"
-                };
-
-                for (int i = 0; i < headers.length; i++) {
+                for (int i = 0; i < HEADERS.length; i++) {
                     Cell cell = headerRow.createCell(i);
-                    cell.setCellValue(headers[i]);
+                    cell.setCellValue(HEADERS[i]);
                 }
 
                 int rowIndex = 1;
                 for (SampleEntity sample : samples) {
+
                     Row row = sheet.createRow(rowIndex++);
-                    row.createCell(0).setCellValue(sample.getId());
-                    row.createCell(1).setCellValue(sample.getName());
+                    row.createCell(0).setCellValue(sample.getId() != null ? sample.getId() : 0);
+                    row.createCell(1).setCellValue(sample.getName() != null ? sample.getName() : "");
                     row.createCell(2).setCellValue(sample.getDescription() != null ? sample.getDescription() : "");
                     row.createCell(3)
                             .setCellValue(
@@ -213,21 +222,44 @@ public class SampleService implements ISampleService {
                                             : "");
                     row.createCell(5).setCellValue(sample.getQuantity() != null ? sample.getQuantity() : 0);
                     row.createCell(6).setCellValue(sample.getStock() != null ? sample.getStock() : 0);
-                    row.createCell(7)
+                    row.createCell(7).setCellValue(sample.getWeight() != null ? sample.getWeight() : 0d);
+                    row.createCell(8).setCellValue(sample.getRatio() != null ? sample.getRatio() : 0f);
+                    row.createCell(9)
                             .setCellValue(
                                     sample.getPrice() != null
                                             ? sample.getPrice().doubleValue()
                                             : 0d);
-                    row.createCell(8).setCellValue(Boolean.TRUE.equals(sample.getActive()));
-
-                    row.createCell(9)
+                    row.createCell(10).setCellValue(Boolean.TRUE.equals(sample.getActive()));
+                    row.createCell(11)
+                            .setCellValue(
+                                    sample.getManufacturedDate() != null
+                                            ? sample.getManufacturedDate().toString()
+                                            : "");
+                    row.createCell(12)
+                            .setCellValue(
+                                    sample.getManufacturedTime() != null
+                                            ? sample.getManufacturedTime().toString()
+                                            : "");
+                    row.createCell(13).setCellValue(sample.getComments() != null ? sample.getComments() : "");
+                    row.createCell(14)
+                            .setCellValue(
+                                    sample.getExternalId() != null
+                                            ? sample.getExternalId().toString()
+                                            : "");
+                    row.createCell(15)
                             .setCellValue(
                                     sample.getCreatedAt() != null
                                             ? sample.getCreatedAt().toString()
                                             : "");
+                    row.createCell(16)
+                            .setCellValue(
+                                    sample.getUpdatedAt() != null
+                                            ? sample.getUpdatedAt().toString()
+                                            : "");
+                    row.createCell(17).setCellValue(sample.getVersion() != null ? sample.getVersion() : 0);
                 }
 
-                for (int i = 0; i < headers.length; i++) {
+                for (int i = 0; i < HEADERS.length; i++) {
                     sheet.autoSizeColumn(i);
                 }
 
