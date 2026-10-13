@@ -14,6 +14,11 @@ public final class MetricsConstants {
     public static final String EXPORT = "export";
     public static final String IMPORT = "import";
 
+    public static final String BULK_DELETE = "bulk_delete";
+    public static final String BULK_DUPLICATE = "bulk_duplicate";
+    public static final String BULK_STATUS = "bulk_status";
+    public static final String BULK_EXPORT = "bulk_export";
+
     // Metric names
     public static final String OPERATIONS_TOTAL = "sample_operations_total";
     public static final String OPERATION_DURATION = "sample_operation_duration";

@@ -39,27 +39,6 @@ public class SampleService implements ISampleService {
     private final SampleRepository sampleRepository;
     private final SampleMapper sampleMapper;
 
-    private static final String[] HEADERS = {
-        "Id",
-        "Nom",
-        "Description",
-        "Statut",
-        "Categorie",
-        "Quantite",
-        "Stock",
-        "Poids",
-        "Ratio",
-        "Prix",
-        "Actif",
-        "Date fabrication",
-        "Heure fabrication",
-        "Commentaires",
-        "ExternalId",
-        "Date creation",
-        "Date modification",
-        "Version"
-    };
-
     @Override
     @CachePut(value = "samples", key = "#result.id")
     public SampleDto create(SampleDto dto) {
@@ -198,9 +177,9 @@ public class SampleService implements ISampleService {
                 Sheet sheet = workbook.createSheet("Samples");
                 Row headerRow = sheet.createRow(0);
 
-                for (int i = 0; i < HEADERS.length; i++) {
+                for (int i = 0; i < SpringStarterConstants.HEADERS.length; i++) {
                     Cell cell = headerRow.createCell(i);
-                    cell.setCellValue(HEADERS[i]);
+                    cell.setCellValue(SpringStarterConstants.HEADERS[i]);
                 }
 
                 int rowIndex = 1;
@@ -259,7 +238,7 @@ public class SampleService implements ISampleService {
                     row.createCell(17).setCellValue(sample.getVersion() != null ? sample.getVersion() : 0);
                 }
 
-                for (int i = 0; i < HEADERS.length; i++) {
+                for (int i = 0; i < SpringStarterConstants.HEADERS.length; i++) {
                     sheet.autoSizeColumn(i);
                 }
 

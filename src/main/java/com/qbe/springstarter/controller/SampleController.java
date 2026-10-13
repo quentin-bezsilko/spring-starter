@@ -1,9 +1,13 @@
 package com.qbe.springstarter.controller;
 
 import com.qbe.springstarter.constants.MetricsConstants;
+import com.qbe.springstarter.dto.BulkIdsDto;
+import com.qbe.springstarter.dto.BulkResultDto;
+import com.qbe.springstarter.dto.BulkStatusDto;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.metrics.annotation.SampleMetricAnnotation;
+import com.qbe.springstarter.service.SampleBulkService;
 import com.qbe.springstarter.service.SampleService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -23,20 +27,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SampleController implements ISampleController {
 
-    private final SampleService service;
+    private final SampleService sampleService;
+    private final SampleBulkService sampleBulkService;
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.CREATE)
     public ResponseEntity<SampleDto> create(@Valid @RequestBody SampleDto dto) {
         log.info("Creating SampleEntity with data: {}", dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(dto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(sampleService.create(dto));
     }
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.FIND_BY_ID)
     public ResponseEntity<SampleDto> findById(Long id) {
         log.info("Finding SampleEntity by id={}", id);
-        return ResponseEntity.status(HttpStatus.OK).body(service.findById(id));
+        return ResponseEntity.status(HttpStatus.OK).body(sampleService.findById(id));
     }
 
     @Override
@@ -54,21 +59,21 @@ public class SampleController implements ISampleController {
                 pageable.getPageSize(),
                 pageable.getSort());
 
-        return ResponseEntity.ok(service.findAll(search, status, category, active, pageable));
+        return ResponseEntity.ok(sampleService.findAll(search, status, category, active, pageable));
     }
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.UPDATE)
     public ResponseEntity<SampleDto> update(Long id, @Valid @RequestBody SampleDto dto) {
         log.info("Updating SampleEntity id={}", id);
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(service.update(id, dto));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(sampleService.update(id, dto));
     }
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.DELETE)
     public ResponseEntity<Void> delete(Long id) {
         log.info("Deleting SampleEntity id={}", id);
-        service.delete(id);
+        sampleService.delete(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
@@ -76,7 +81,7 @@ public class SampleController implements ISampleController {
     @SampleMetricAnnotation(operation = MetricsConstants.DUPLICATE)
     public ResponseEntity<SampleDto> duplicate(Long id) {
         log.info("Duplicating SampleEntity id={}", id);
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.duplicate(id));
+        return ResponseEntity.status(HttpStatus.CREATED).body(sampleService.duplicate(id));
     }
 
     @Override
@@ -84,7 +89,41 @@ public class SampleController implements ISampleController {
     public ResponseEntity<byte[]> export(String search, Status status, Character category, Boolean active) {
         log.info("Exporting samples search={}, status={}, category={}, active={}", search, status, category, active);
         String fileName = "samples-" + LocalDate.now() + ".xlsx";
-        byte[] file = service.export(search, status, category, active);
+        byte[] file = sampleService.export(search, status, category, active);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
+    }
+
+    @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.BULK_DELETE)
+    public ResponseEntity<BulkResultDto> bulkDelete(BulkIdsDto request) {
+        log.info("Deleting samples in bulk ids={}", request.ids());
+        return ResponseEntity.ok(sampleBulkService.bulkDelete(request.ids()));
+    }
+
+    @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.BULK_DUPLICATE)
+    public ResponseEntity<BulkResultDto> bulkDuplicate(BulkIdsDto request) {
+        log.info("Duplicating samples in bulk ids={}", request.ids());
+        return ResponseEntity.ok(sampleBulkService.bulkDuplicate(request.ids()));
+    }
+
+    @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.BULK_STATUS)
+    public ResponseEntity<BulkResultDto> bulkUpdateStatus(@Valid BulkStatusDto request) {
+        log.info("Updating samples status in bulk ids={} status={}", request.ids(), request.status());
+        return ResponseEntity.ok(sampleBulkService.bulkUpdateStatus(request.ids(), request.status()));
+    }
+
+    @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.BULK_EXPORT)
+    public ResponseEntity<byte[]> bulkExport(BulkIdsDto request) {
+        log.info("Exporting samples in bulk ids={}", request.ids());
+        String fileName = "samples-selection-" + LocalDate.now() + ".xlsx";
+        byte[] file = sampleBulkService.bulkExport(request.ids());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
                 .contentType(

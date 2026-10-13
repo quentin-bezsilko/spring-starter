@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.qbe.springstarter.dto.BulkIdsDto;
+import com.qbe.springstarter.dto.BulkResultDto;
+import com.qbe.springstarter.dto.BulkStatusDto;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
+import com.qbe.springstarter.service.SampleBulkService;
 import com.qbe.springstarter.service.SampleService;
 import java.util.List;
 import java.util.Objects;
@@ -31,6 +35,9 @@ class TestSampleController {
 
     @Mock
     private SampleService sampleService;
+
+    @Mock
+    private SampleBulkService sampleBulkService;
 
     @InjectMocks
     private SampleController sampleController;
@@ -355,6 +362,7 @@ class TestSampleController {
 
             ResponseEntity<SampleDto> response = sampleController.duplicate(42L);
 
+            assertNotNull(response.getBody());
             assertEquals(99L, response.getBody().id());
             assertEquals("My Sample (copie)", response.getBody().name());
 
@@ -413,6 +421,125 @@ class TestSampleController {
             assertNotNull(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
             assertTrue(Objects.requireNonNull(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
                     .startsWith("attachment; filename=samples-"));
+        }
+    }
+
+    @Nested
+    @DisplayName("bulkDelete")
+    class BulkDelete {
+
+        @Test
+        @DisplayName("Doit retourner 200 avec le résultat de suppression")
+        void shouldBulkDeleteSamples() {
+
+            BulkIdsDto request = new BulkIdsDto(List.of(1L, 2L, 3L));
+
+            BulkResultDto result = new BulkResultDto(3, 0, List.of());
+
+            when(sampleBulkService.bulkDelete(request.ids())).thenReturn(result);
+
+            ResponseEntity<BulkResultDto> response = sampleController.bulkDelete(request);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(result, response.getBody());
+
+            verify(sampleBulkService).bulkDelete(request.ids());
+        }
+    }
+
+    @Nested
+    @DisplayName("bulkDuplicate")
+    class BulkDuplicate {
+
+        @Test
+        @DisplayName("Doit retourner 200 avec le résultat de duplication")
+        void shouldBulkDuplicateSamples() {
+
+            BulkIdsDto request = new BulkIdsDto(List.of(1L, 2L));
+
+            BulkResultDto result = new BulkResultDto(2, 0, List.of());
+
+            when(sampleBulkService.bulkDuplicate(request.ids())).thenReturn(result);
+
+            ResponseEntity<BulkResultDto> response = sampleController.bulkDuplicate(request);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(result, response.getBody());
+
+            verify(sampleBulkService).bulkDuplicate(request.ids());
+        }
+    }
+
+    @Nested
+    @DisplayName("bulkUpdateStatus")
+    class BulkUpdateStatus {
+
+        @Test
+        @DisplayName("Doit retourner 200 avec le résultat de mise à jour")
+        void shouldBulkUpdateStatus() {
+
+            BulkStatusDto request = new BulkStatusDto(List.of(1L, 2L, 3L), Status.ACTIVE);
+
+            BulkResultDto result = new BulkResultDto(3, 0, List.of());
+
+            when(sampleBulkService.bulkUpdateStatus(request.ids(), request.status()))
+                    .thenReturn(result);
+
+            ResponseEntity<BulkResultDto> response = sampleController.bulkUpdateStatus(request);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(result, response.getBody());
+
+            verify(sampleBulkService).bulkUpdateStatus(request.ids(), request.status());
+        }
+    }
+
+    @Nested
+    @DisplayName("bulkExport")
+    class BulkExport {
+
+        @Test
+        @DisplayName("Doit retourner 200 avec le fichier Excel")
+        void shouldBulkExportSamples() {
+
+            BulkIdsDto request = new BulkIdsDto(List.of(1L, 2L));
+
+            byte[] file = "excel-content".getBytes();
+
+            when(sampleBulkService.bulkExport(request.ids())).thenReturn(file);
+
+            ResponseEntity<byte[]> response = sampleController.bulkExport(request);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertArrayEquals(file, response.getBody());
+
+            verify(sampleBulkService).bulkExport(request.ids());
+        }
+
+        @Test
+        @DisplayName("Doit retourner les headers Excel")
+        void shouldReturnBulkExportHeaders() {
+
+            BulkIdsDto request = new BulkIdsDto(List.of(1L));
+
+            byte[] file = new byte[] {1, 2, 3};
+
+            when(sampleBulkService.bulkExport(request.ids())).thenReturn(file);
+
+            ResponseEntity<byte[]> response = sampleController.bulkExport(request);
+
+            assertEquals(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    Objects.requireNonNull(response.getHeaders().getContentType())
+                            .toString());
+
+            String disposition = response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
+
+            assertNotNull(disposition);
+
+            assertTrue(disposition.startsWith("attachment; filename=samples-selection-"));
+
+            verify(sampleBulkService).bulkExport(request.ids());
         }
     }
 }

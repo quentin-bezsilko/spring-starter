@@ -5,9 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qbe.springstarter.dto.BulkIdsDto;
+import com.qbe.springstarter.dto.BulkStatusDto;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.UUID;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -242,6 +245,184 @@ class TestSampleControllerIT extends TestAbstractIntegration {
             assertEquals("Samples", workbook.getSheetAt(0).getSheetName());
             assertEquals("Id", workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue());
             assertEquals("Nom", workbook.getSheetAt(0).getRow(0).getCell(1).getStringCellValue());
+        }
+    }
+
+    @Test
+    void shouldBulkDeleteSamples() throws Exception {
+
+        SampleDto sample1 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-DELETE-1"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        SampleDto sample2 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-DELETE-2"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        BulkIdsDto request = new BulkIdsDto(List.of(sample1.id(), sample2.id()));
+
+        mockMvc.perform(post("/api/v1/samples/bulk-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(2))
+                .andExpect(jsonPath("$.failed").value(0));
+
+        mockMvc.perform(get("/api/v1/samples/{id}", sample1.id())).andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/v1/samples/{id}", sample2.id())).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldBulkDuplicateSamples() throws Exception {
+
+        SampleDto sample1 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-DUPLICATE-1"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        SampleDto sample2 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-DUPLICATE-2"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        BulkIdsDto request = new BulkIdsDto(List.of(sample1.id(), sample2.id()));
+
+        mockMvc.perform(post("/api/v1/samples/bulk-duplicate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(2))
+                .andExpect(jsonPath("$.failed").value(0));
+
+        mockMvc.perform(get("/api/v1/samples").param("search", "(copie)")).andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldBulkUpdateStatus() throws Exception {
+
+        SampleDto sample1 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-STATUS-1"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        SampleDto sample2 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-STATUS-2"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        BulkStatusDto request = new BulkStatusDto(List.of(sample1.id(), sample2.id()), Status.ARCHIVED);
+
+        mockMvc.perform(post("/api/v1/samples/bulk-status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(2))
+                .andExpect(jsonPath("$.failed").value(0));
+
+        mockMvc.perform(get("/api/v1/samples/{id}", sample1.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(Status.ARCHIVED.name()));
+
+        mockMvc.perform(get("/api/v1/samples/{id}", sample2.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(Status.ARCHIVED.name()));
+    }
+
+    @Test
+    void shouldBulkExportSamples() throws Exception {
+
+        SampleDto sample1 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-EXPORT-1"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        SampleDto sample2 = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-EXPORT-2"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        BulkIdsDto request = new BulkIdsDto(List.of(sample1.id(), sample2.id()));
+
+        mockMvc.perform(post("/api/v1/samples/bulk-export")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(header().exists(HttpHeaders.CONTENT_DISPOSITION))
+                .andExpect(header().string(
+                                HttpHeaders.CONTENT_TYPE,
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @Test
+    void shouldGenerateValidExcelWorkbookForBulkExport() throws Exception {
+
+        SampleDto sample = objectMapper.readValue(
+                mockMvc.perform(post("/api/v1/samples")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(buildSampleDto("BULK-EXPORT-WORKBOOK"))))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString(),
+                SampleDto.class);
+
+        BulkIdsDto request = new BulkIdsDto(List.of(sample.id()));
+
+        MvcResult result = mockMvc.perform(post("/api/v1/samples/bulk-export")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        try (Workbook workbook =
+                new XSSFWorkbook(new ByteArrayInputStream(result.getResponse().getContentAsByteArray()))) {
+
+            assertEquals("Samples", workbook.getSheetAt(0).getSheetName());
+
+            assertEquals("Id", workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue());
         }
     }
 }

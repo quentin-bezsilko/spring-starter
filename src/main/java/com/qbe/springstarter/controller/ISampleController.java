@@ -1,5 +1,8 @@
 package com.qbe.springstarter.controller;
 
+import com.qbe.springstarter.dto.BulkIdsDto;
+import com.qbe.springstarter.dto.BulkResultDto;
+import com.qbe.springstarter.dto.BulkStatusDto;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
 import io.swagger.v3.oas.annotations.Operation;
@@ -104,4 +107,47 @@ public interface ISampleController {
             @RequestParam(required = false) Status status,
             @RequestParam(required = false) Character category,
             @RequestParam(required = false) Boolean active);
+
+    @Operation(
+            summary = "Delete samples in bulk",
+            description = "Delete multiple samples in a single operation. Requires WRITE authority.")
+    @ApiResponse(responseCode = "200", description = "Samples successfully deleted")
+    @ApiResponse(responseCode = "400", description = "Invalid request")
+    @ApiResponse(responseCode = "401", description = "Authentication required")
+    @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
+    @PostMapping("/bulk-delete")
+    ResponseEntity<BulkResultDto> bulkDelete(
+            @Parameter(description = "Identifiers of the samples to delete") @RequestBody BulkIdsDto request);
+
+    @Operation(
+            summary = "Duplicate samples in bulk",
+            description = "Duplicate multiple samples in a single operation. Requires WRITE authority.")
+    @ApiResponse(responseCode = "200", description = "Samples successfully duplicated")
+    @ApiResponse(responseCode = "400", description = "Invalid request")
+    @ApiResponse(responseCode = "401", description = "Authentication required")
+    @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
+    @PostMapping("/bulk-duplicate")
+    ResponseEntity<BulkResultDto> bulkDuplicate(
+            @Parameter(description = "Identifiers of the samples to duplicate") @RequestBody BulkIdsDto request);
+
+    @Operation(
+            summary = "Update status of samples in bulk",
+            description = "Update the status of multiple samples in a single operation. Requires WRITE authority.")
+    @ApiResponse(responseCode = "200", description = "Sample statuses successfully updated")
+    @ApiResponse(responseCode = "400", description = "Invalid request")
+    @ApiResponse(responseCode = "401", description = "Authentication required")
+    @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
+    @PostMapping("/bulk-status")
+    ResponseEntity<BulkResultDto> bulkUpdateStatus(@Valid @RequestBody BulkStatusDto request);
+
+    @Operation(
+            summary = "Export selected samples",
+            description = "Export the selected samples to an Excel file. Requires READ authority.")
+    @ApiResponse(responseCode = "200", description = "Excel file successfully generated")
+    @ApiResponse(responseCode = "400", description = "Invalid request")
+    @ApiResponse(responseCode = "401", description = "Authentication required")
+    @ApiResponse(responseCode = "403", description = "Missing READ authority")
+    @PostMapping("/bulk-export")
+    ResponseEntity<byte[]> bulkExport(
+            @Parameter(description = "Identifiers of the samples to export") @RequestBody BulkIdsDto request);
 }
