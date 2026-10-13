@@ -68,7 +68,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(null, null, null, null, null, pageable);
 
         assertThat(result).isNotNull();
         assertThat(result.getContent()).isNotEmpty();
@@ -96,7 +96,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 2, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(null, null, null, null, null, pageable);
 
         assertThat(result.getNumber()).isZero();
         assertThat(result.getSize()).isEqualTo(2);
@@ -114,14 +114,14 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable firstPageable = PageRequest.of(0, 1, Sort.by("id").ascending());
 
-        Page<SampleDto> firstPage = sampleService.findAll(null, null, null, null, firstPageable);
+        Page<SampleDto> firstPage = sampleService.findAll(null, null, null, null, null, firstPageable);
 
         assertThat(firstPage.getContent()).hasSize(1);
         assertThat(firstPage.getNumber()).isZero();
 
         Pageable secondPageable = PageRequest.of(1, 1, Sort.by("id").ascending());
 
-        Page<SampleDto> secondPage = sampleService.findAll(null, null, null, null, secondPageable);
+        Page<SampleDto> secondPage = sampleService.findAll(null, null, null, null, null, secondPageable);
 
         assertThat(secondPage.getContent()).hasSize(1);
         assertThat(secondPage.getNumber()).isEqualTo(1);
@@ -142,7 +142,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, null, pageable);
 
         assertThat(result.getContent()).extracting(SampleDto::id).contains(expected.id());
 
@@ -157,7 +157,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(marker.toLowerCase(), null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker.toLowerCase(), null, null, null, null, pageable);
 
         assertThat(result.getContent()).extracting(SampleDto::id).contains(expected.id());
     }
@@ -173,7 +173,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, null, pageable);
 
         assertThat(result.getContent()).extracting(SampleDto::id).contains(expected.id());
     }
@@ -189,7 +189,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, null, pageable);
 
         assertThat(result.getContent()).extracting(SampleDto::id).contains(expected.id());
     }
@@ -210,7 +210,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(null, Status.ACTIVE, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(null, Status.ACTIVE, null, null, null, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -236,7 +236,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(null, null, 'A', null, pageable);
+        Page<SampleDto> result = sampleService.findAll(null, null, null, 'A', null, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -263,7 +263,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(null, null, null, true, pageable);
+        Page<SampleDto> result = sampleService.findAll(null, null, null, null, true, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -289,7 +289,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(null, null, null, false, pageable);
+        Page<SampleDto> result = sampleService.findAll(null, null, null, null, false, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -333,7 +333,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(marker, Status.ACTIVE, 'A', true, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker, Status.ACTIVE, null, 'A', true, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -359,7 +359,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("name").ascending());
 
-        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, null, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -384,7 +384,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 20, Sort.by("name").descending());
 
-        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll(marker, null, null, null, null, pageable);
 
         assertThat(result.getContent())
                 .extracting(SampleDto::id)
@@ -396,7 +396,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
         Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
         Page<SampleDto> result =
-                sampleService.findAll("DOES-NOT-EXIST-" + UUID.randomUUID(), null, null, null, pageable);
+                sampleService.findAll("DOES-NOT-EXIST-" + UUID.randomUUID(), null, null, null, null, pageable);
 
         assertThat(result).isNotNull();
         assertThat(result.getContent()).isEmpty();
@@ -409,7 +409,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
         Pageable pageable = PageRequest.of(0, 100, Sort.by("id").ascending());
 
-        Page<SampleDto> result = sampleService.findAll("   ", null, null, null, pageable);
+        Page<SampleDto> result = sampleService.findAll("   ", null, null, null, null, pageable);
 
         assertThat(result.getContent()).extracting(SampleDto::id).contains(created.id());
     }
@@ -524,7 +524,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     @Test
     void shouldExportSamples() throws Exception {
         sampleService.create(buildSampleDto("EXPORT-SERVICE-" + UUID.randomUUID()));
-        byte[] result = sampleService.export(null, null, null, null);
+        byte[] result = sampleService.export(null, null, null, null, null);
         assertThat(result).isNotNull();
         assertThat(result.length).isGreaterThan(0);
     }
@@ -532,7 +532,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     @Test
     void shouldGenerateValidExcelWorkbook() throws Exception {
         sampleService.create(buildSampleDto("EXPORT-WORKBOOK-" + UUID.randomUUID()));
-        byte[] result = sampleService.export(null, null, null, null);
+        byte[] result = sampleService.export(null, null, null, null, null);
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             assertThat(workbook.getNumberOfSheets()).isEqualTo(1);
             assertThat(workbook.getSheetAt(0).getSheetName()).isEqualTo("Samples");
@@ -543,7 +543,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
     void shouldGenerateExpectedHeaders() throws Exception {
         sampleService.create(buildSampleDto("EXPORT-HEADERS-" + UUID.randomUUID()));
 
-        byte[] result = sampleService.export(null, null, null, null);
+        byte[] result = sampleService.export(null, null, null, null, null);
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             var headerRow = workbook.getSheetAt(0).getRow(0);
             assertThat(headerRow.getCell(0).getStringCellValue()).isEqualTo("Id");
@@ -569,7 +569,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
                 .externalId(UUID.randomUUID())
                 .build());
 
-        byte[] result = sampleService.export(marker, Status.ACTIVE, null, null);
+        byte[] result = sampleService.export(marker, Status.ACTIVE, null, null, null);
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             var sheet = workbook.getSheetAt(0);
             assertThat(sheet.getLastRowNum()).isEqualTo(1);
@@ -579,7 +579,7 @@ class TestSampleServiceIT extends TestAbstractIntegration {
 
     @Test
     void shouldExportEmptyWorkbookWhenNoDataMatches() throws Exception {
-        byte[] result = sampleService.export("NOT-FOUND-" + UUID.randomUUID(), null, null, null);
+        byte[] result = sampleService.export("NOT-FOUND-" + UUID.randomUUID(), null, null, null, null);
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             var sheet = workbook.getSheetAt(0);
             assertThat(sheet.getLastRowNum()).isZero();

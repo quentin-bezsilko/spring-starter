@@ -1,10 +1,7 @@
 package com.qbe.springstarter.controller;
 
 import com.qbe.springstarter.constants.MetricsConstants;
-import com.qbe.springstarter.dto.BulkIdsDto;
-import com.qbe.springstarter.dto.BulkResultDto;
-import com.qbe.springstarter.dto.BulkStatusDto;
-import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.dto.*;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.metrics.annotation.SampleMetricAnnotation;
 import com.qbe.springstarter.service.SampleBulkService;
@@ -47,19 +44,25 @@ public class SampleController implements ISampleController {
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.FIND_ALL)
     public ResponseEntity<Page<SampleDto>> findAll(
-            String search, Status status, Character category, Boolean active, Pageable pageable) {
+            String search,
+            Status status,
+            Boolean includeDeleted,
+            Character category,
+            Boolean active,
+            Pageable pageable) {
 
         log.info(
-                "Finding SampleEntities search={}, status={}, category={}, active={}, page={}, size={}, sort={}",
+                "Finding SampleEntities search={}, status={}, category={}, active={}, page={}, size={}, sort={}, includeDeleted={}",
                 search,
                 status,
                 category,
                 active,
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
-                pageable.getSort());
+                pageable.getSort(),
+                includeDeleted);
 
-        return ResponseEntity.ok(sampleService.findAll(search, status, category, active, pageable));
+        return ResponseEntity.ok(sampleService.findAll(search, status, includeDeleted, category, active, pageable));
     }
 
     @Override
@@ -78,6 +81,13 @@ public class SampleController implements ISampleController {
     }
 
     @Override
+    @SampleMetricAnnotation(operation = MetricsConstants.UPDATE_STATUS)
+    public ResponseEntity<SampleDto> updateStatus(Long id, UpdateSampleStatusDto request) {
+        log.info("Updating SampleEntity id={} status={}", id, request.status());
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(sampleService.updateStatus(id, request.status()));
+    }
+
+    @Override
     @SampleMetricAnnotation(operation = MetricsConstants.DUPLICATE)
     public ResponseEntity<SampleDto> duplicate(Long id) {
         log.info("Duplicating SampleEntity id={}", id);
@@ -86,10 +96,11 @@ public class SampleController implements ISampleController {
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.EXPORT)
-    public ResponseEntity<byte[]> export(String search, Status status, Character category, Boolean active) {
+    public ResponseEntity<byte[]> export(
+            String search, Status status, Boolean includeDeleted, Character category, Boolean active) {
         log.info("Exporting samples search={}, status={}, category={}, active={}", search, status, category, active);
         String fileName = "samples-" + LocalDate.now() + ".xlsx";
-        byte[] file = sampleService.export(search, status, category, active);
+        byte[] file = sampleService.export(search, status, includeDeleted, category, active);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
                 .contentType(

@@ -16,6 +16,7 @@ import com.qbe.springstarter.error.TechnicalException;
 import com.qbe.springstarter.error.VersionConflictException;
 import com.qbe.springstarter.mapper.SampleMapper;
 import com.qbe.springstarter.repository.SampleRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -148,7 +149,7 @@ class TestSampleService {
 
             when(sampleMapper.toDto(entity2)).thenReturn(dto2);
 
-            Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, null, pageable);
 
             assertEquals(2, result.getContent().size());
             assertEquals(sampleDto, result.getContent().get(0));
@@ -176,7 +177,7 @@ class TestSampleService {
             when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
                     .thenReturn(entityPage);
 
-            Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, null, pageable);
 
             assertEquals(2, result.getNumber());
             assertEquals(5, result.getSize());
@@ -199,7 +200,7 @@ class TestSampleService {
             when(sampleRepository.findAll(any(Specification.class), eq(pageable)))
                     .thenReturn(entityPage);
 
-            Page<SampleDto> result = sampleService.findAll(null, null, null, null, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, null, pageable);
 
             assertTrue(result.isEmpty());
             assertEquals(0, result.getTotalElements());
@@ -226,7 +227,7 @@ class TestSampleService {
 
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
-            Page<SampleDto> result = sampleService.findAll(search, null, null, null, pageable);
+            Page<SampleDto> result = sampleService.findAll(search, null, null, null, null, pageable);
 
             assertEquals(1, result.getTotalElements());
             assertEquals(sampleDto, result.getContent().getFirst());
@@ -248,7 +249,7 @@ class TestSampleService {
 
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
-            Page<SampleDto> result = sampleService.findAll(null, Status.ACTIVE, null, null, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, Status.ACTIVE, null, null, null, pageable);
 
             assertEquals(1, result.getTotalElements());
             assertEquals(sampleDto, result.getContent().getFirst());
@@ -268,7 +269,7 @@ class TestSampleService {
 
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
-            Page<SampleDto> result = sampleService.findAll(null, null, 'A', null, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, 'A', null, pageable);
 
             assertEquals(1, result.getTotalElements());
             assertEquals(sampleDto, result.getContent().getFirst());
@@ -288,7 +289,7 @@ class TestSampleService {
 
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
-            Page<SampleDto> result = sampleService.findAll(null, null, null, true, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, true, pageable);
 
             assertEquals(1, result.getTotalElements());
 
@@ -305,7 +306,7 @@ class TestSampleService {
                     .thenReturn(entityPage);
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
-            Page<SampleDto> result = sampleService.findAll(null, null, null, false, pageable);
+            Page<SampleDto> result = sampleService.findAll(null, null, null, null, false, pageable);
             assertEquals(1, result.getTotalElements());
             verify(sampleRepository).findAll(any(Specification.class), eq(pageable));
         }
@@ -322,7 +323,7 @@ class TestSampleService {
 
             when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
 
-            Page<SampleDto> result = sampleService.findAll("sample", Status.ACTIVE, 'A', true, pageable);
+            Page<SampleDto> result = sampleService.findAll("sample", Status.ACTIVE, null, 'A', true, pageable);
 
             assertEquals(1, result.getTotalElements());
             assertEquals(8, result.getSize());
@@ -344,7 +345,8 @@ class TestSampleService {
                     .thenThrow(exception);
 
             RuntimeException thrown = assertThrows(
-                    RuntimeException.class, () -> sampleService.findAll("sample", Status.ACTIVE, 'A', true, pageable));
+                    RuntimeException.class,
+                    () -> sampleService.findAll("sample", Status.ACTIVE, null, 'A', true, pageable));
 
             assertEquals(exception, thrown);
 
@@ -404,6 +406,123 @@ class TestSampleService {
     }
 
     @Nested
+    @DisplayName("updateStatus")
+    class UpdateStatus {
+
+        @Test
+        @DisplayName("Doit mettre à jour le statut d'une entité existante")
+        void shouldUpdateStatus() {
+            sampleEntity.setStatus(Status.CREATED);
+
+            SampleDto updatedDto = sampleDto.toBuilder().status(Status.ARCHIVED).build();
+
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(updatedDto);
+
+            SampleDto result = sampleService.updateStatus(1L, Status.ARCHIVED);
+
+            assertEquals(updatedDto, result);
+            assertEquals(Status.ARCHIVED, sampleEntity.getStatus());
+
+            verify(sampleRepository).findById(1L);
+            verify(sampleRepository).saveAndFlush(sampleEntity);
+            verify(sampleMapper).toDto(sampleEntity);
+        }
+
+        @Test
+        @DisplayName("Doit mettre à jour la date de modification")
+        void shouldUpdateUpdatedAt() {
+            Instant previousDate = Instant.now().minusSeconds(3600);
+            sampleEntity.setUpdatedAt(previousDate);
+
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            sampleService.updateStatus(1L, Status.ACTIVE);
+            assertNotNull(sampleEntity.getUpdatedAt());
+            assertTrue(sampleEntity.getUpdatedAt().isAfter(previousDate));
+            verify(sampleRepository).saveAndFlush(sampleEntity);
+        }
+
+        @Test
+        @DisplayName("Doit permettre le passage au statut ACTIVE")
+        void shouldUpdateStatusToActive() {
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            sampleService.updateStatus(1L, Status.ACTIVE);
+            assertEquals(Status.ACTIVE, sampleEntity.getStatus());
+        }
+
+        @Test
+        @DisplayName("Doit permettre le passage au statut ARCHIVED")
+        void shouldUpdateStatusToArchived() {
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            sampleService.updateStatus(1L, Status.ARCHIVED);
+            assertEquals(Status.ARCHIVED, sampleEntity.getStatus());
+        }
+
+        @Test
+        @DisplayName("Doit permettre le passage au statut DELETED")
+        void shouldUpdateStatusToDeleted() {
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(sampleDto);
+
+            sampleService.updateStatus(1L, Status.DELETED);
+            assertEquals(Status.DELETED, sampleEntity.getStatus());
+        }
+
+        @Test
+        @DisplayName("Doit lever une NotFoundException lorsque l'entité n'existe pas")
+        void shouldThrowNotFoundExceptionWhenEntityDoesNotExist() {
+            when(sampleRepository.findById(1L)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> sampleService.updateStatus(1L, Status.ACTIVE));
+            verify(sampleRepository, never()).saveAndFlush(any());
+            verify(sampleMapper, never()).toDto(any());
+        }
+
+        @Test
+        @DisplayName("Doit propager une erreur du repository")
+        void shouldPropagateRepositoryException() {
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+
+            RuntimeException exception = new RuntimeException("Database error");
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenThrow(exception);
+
+            RuntimeException thrown =
+                    assertThrows(RuntimeException.class, () -> sampleService.updateStatus(1L, Status.ACTIVE));
+
+            assertEquals(exception, thrown);
+
+            verify(sampleRepository).findById(1L);
+            verify(sampleRepository).saveAndFlush(sampleEntity);
+            verify(sampleMapper, never()).toDto(any());
+        }
+
+        @Test
+        @DisplayName("Doit retourner le DTO fourni par le mapper")
+        void shouldReturnMappedDto() {
+            SampleDto expectedDto =
+                    sampleDto.toBuilder().status(Status.ARCHIVED).build();
+            when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
+            when(sampleRepository.saveAndFlush(sampleEntity)).thenReturn(sampleEntity);
+            when(sampleMapper.toDto(sampleEntity)).thenReturn(expectedDto);
+
+            SampleDto result = sampleService.updateStatus(1L, Status.ARCHIVED);
+            assertEquals(expectedDto, result);
+            verify(sampleMapper).toDto(sampleEntity);
+        }
+    }
+
+    @Nested
     @DisplayName("delete")
     class Delete {
 
@@ -411,9 +530,7 @@ class TestSampleService {
         @DisplayName("Doit supprimer une entité existante")
         void shouldDeleteEntity() {
             when(sampleRepository.existsById(1L)).thenReturn(true);
-
             sampleService.delete(1L);
-
             verify(sampleRepository).deleteById(1L);
         }
 
@@ -421,9 +538,7 @@ class TestSampleService {
         @DisplayName("Doit lever une NotFoundException lorsque l'entité n'existe pas")
         void shouldThrowNotFoundExceptionWhenDeletingMissingEntity() {
             when(sampleRepository.existsById(1L)).thenReturn(false);
-
             assertThrows(NotFoundException.class, () -> sampleService.delete(1L));
-
             verify(sampleRepository, never()).deleteById(anyLong());
         }
     }
@@ -529,7 +644,7 @@ class TestSampleService {
 
             when(sampleRepository.findAll(any(Specification.class))).thenReturn(List.of(sampleEntity));
 
-            byte[] result = sampleService.export(null, null, null, null);
+            byte[] result = sampleService.export(null, null, null, null, null);
 
             assertNotNull(result);
             assertTrue(result.length > 0);
@@ -540,7 +655,7 @@ class TestSampleService {
         @DisplayName("Doit exporter un fichier Excel même sans données")
         void shouldExportEmptyExcelFile() {
             when(sampleRepository.findAll(any(Specification.class))).thenReturn(List.of());
-            byte[] result = sampleService.export(null, null, null, null);
+            byte[] result = sampleService.export(null, null, null, null, null);
 
             assertNotNull(result);
             assertTrue(result.length > 0);
@@ -551,7 +666,7 @@ class TestSampleService {
         @DisplayName("Doit transmettre les filtres au repository")
         void shouldExportWithFilters() {
             when(sampleRepository.findAll(any(Specification.class))).thenReturn(List.of(sampleEntity));
-            byte[] result = sampleService.export("sample", Status.ACTIVE, 'A', true);
+            byte[] result = sampleService.export("sample", Status.ACTIVE, null, 'A', true);
 
             assertNotNull(result);
             assertTrue(result.length > 0);
@@ -563,7 +678,7 @@ class TestSampleService {
         @DisplayName("Doit lever une TechnicalException lorsqu'une erreur survient")
         void shouldThrowTechnicalExceptionWhenExportFails() {
             when(sampleRepository.findAll(any(Specification.class))).thenThrow(new RuntimeException("boom"));
-            assertThrows(TechnicalException.class, () -> sampleService.export(null, null, null, null));
+            assertThrows(TechnicalException.class, () -> sampleService.export(null, null, null, null, null));
             verify(sampleRepository).findAll(any(Specification.class));
         }
     }

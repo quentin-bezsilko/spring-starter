@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qbe.springstarter.dto.BulkIdsDto;
 import com.qbe.springstarter.dto.BulkStatusDto;
 import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.dto.UpdateSampleStatusDto;
 import com.qbe.springstarter.enums.Status;
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -424,5 +425,96 @@ class TestSampleControllerIT extends TestAbstractIntegration {
 
             assertEquals("Id", workbook.getSheetAt(0).getRow(0).getCell(0).getStringCellValue());
         }
+    }
+
+    @Test
+    void shouldUpdateSampleStatus() throws Exception {
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("PATCH-STATUS-ARCHIVED"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        SampleDto created = objectMapper.readValue(createResult.getResponse().getContentAsString(), SampleDto.class);
+
+        UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.ARCHIVED);
+
+        mockMvc.perform(patch("/api/v1/samples/{id}/status", created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.id").value(created.id()))
+                .andExpect(jsonPath("$.status").value(Status.ARCHIVED.name()));
+    }
+
+    @Test
+    void shouldUpdateStatusToActive() throws Exception {
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("PATCH-STATUS-ACTIVE"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        SampleDto created = objectMapper.readValue(createResult.getResponse().getContentAsString(), SampleDto.class);
+
+        UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.ACTIVE);
+
+        mockMvc.perform(patch("/api/v1/samples/{id}/status", created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value(Status.ACTIVE.name()));
+    }
+
+    @Test
+    void shouldUpdateStatusToDeleted() throws Exception {
+
+        MvcResult createResult = mockMvc.perform(post("/api/v1/samples")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildSampleDto("PATCH-STATUS-DELETED"))))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        SampleDto created = objectMapper.readValue(createResult.getResponse().getContentAsString(), SampleDto.class);
+
+        UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.DELETED);
+
+        mockMvc.perform(patch("/api/v1/samples/{id}/status", created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value(Status.DELETED.name()));
+
+        mockMvc.perform(get("/api/v1/samples/{id}", created.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(Status.DELETED.name()));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenUpdatingStatusOfUnknownSample() throws Exception {
+
+        UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.ARCHIVED);
+
+        mockMvc.perform(patch("/api/v1/samples/{id}/status", 999999L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenStatusIsNull() throws Exception {
+
+        String payload = """
+        {
+          "status": null
+        }
+        """;
+
+        mockMvc.perform(patch("/api/v1/samples/{id}/status", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest());
     }
 }

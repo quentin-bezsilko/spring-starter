@@ -31,6 +31,15 @@ public final class SampleSpecification {
         };
     }
 
+    public static Specification<SampleEntity> includeDeleted(Boolean includeDeleted) {
+        return (root, query, cb) -> {
+            if (Boolean.TRUE.equals(includeDeleted)) {
+                return cb.conjunction();
+            }
+            return cb.notEqual(root.get("status"), Status.DELETED);
+        };
+    }
+
     public static Specification<SampleEntity> hasCategory(Character category) {
         return (root, query, cb) -> {
             if (category == null) {

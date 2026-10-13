@@ -1,10 +1,12 @@
 package com.qbe.springstarter.testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.qbe.springstarter.dto.BulkResultDto;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.enums.Status;
+import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.repository.SampleRepository;
 import com.qbe.springstarter.service.SampleBulkService;
 import com.qbe.springstarter.service.SampleService;
@@ -104,5 +106,54 @@ class TestSampleBulkServiceIT extends TestAbstractIntegration {
         try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(result))) {
             assertThat(workbook.getSheetAt(0).getLastRowNum()).isZero();
         }
+    }
+
+    @Test
+    void shouldUpdateStatusToArchived() {
+        SampleDto sample = sampleService.create(buildSampleDto("STATUS-ARCHIVED-" + UUID.randomUUID()).toBuilder()
+                .status(Status.CREATED)
+                .build());
+
+        SampleDto updated = sampleService.updateStatus(sample.id(), Status.ARCHIVED);
+        assertThat(updated.status()).isEqualTo(Status.ARCHIVED);
+        assertThat(sampleService.findById(sample.id()).status()).isEqualTo(Status.ARCHIVED);
+    }
+
+    @Test
+    void shouldUpdateStatusToActive() {
+        SampleDto sample = sampleService.create(buildSampleDto("STATUS-ACTIVE-" + UUID.randomUUID()).toBuilder()
+                .status(Status.CREATED)
+                .build());
+
+        SampleDto updated = sampleService.updateStatus(sample.id(), Status.ACTIVE);
+
+        assertThat(updated.status()).isEqualTo(Status.ACTIVE);
+        assertThat(sampleService.findById(sample.id()).status()).isEqualTo(Status.ACTIVE);
+    }
+
+    @Test
+    void shouldUpdateStatusToDeleted() {
+        SampleDto sample = sampleService.create(buildSampleDto("STATUS-DELETED-" + UUID.randomUUID()));
+        SampleDto updated = sampleService.updateStatus(sample.id(), Status.DELETED);
+
+        assertThat(updated.status()).isEqualTo(Status.DELETED);
+        assertThat(sampleService.findById(sample.id()).status()).isEqualTo(Status.DELETED);
+        assertThat(sampleRepository.existsById(sample.id())).isTrue();
+    }
+
+    @Test
+    void shouldUpdateUpdatedAtWhenStatusChanges() {
+        SampleDto sample = sampleService.create(buildSampleDto("STATUS-DATE-" + UUID.randomUUID()));
+        SampleDto beforeUpdate = sampleService.findById(sample.id());
+        sampleService.updateStatus(sample.id(), Status.ARCHIVED);
+
+        SampleDto afterUpdate = sampleService.findById(sample.id());
+        assertThat(afterUpdate.updatedAt()).isAfterOrEqualTo(beforeUpdate.updatedAt());
+    }
+
+    @Test
+    void shouldThrowWhenUpdatingStatusOfUnknownSample() {
+        assertThatThrownBy(() -> sampleService.updateStatus(Long.MAX_VALUE, Status.ARCHIVED))
+                .isInstanceOf(NotFoundException.class);
     }
 }

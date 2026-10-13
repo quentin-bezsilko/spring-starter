@@ -79,17 +79,23 @@ public class SampleService implements ISampleService {
 
     @Override
     public Page<SampleDto> findAll(
-            String search, Status status, Character category, Boolean active, Pageable pageable) {
+            String search,
+            Status status,
+            Boolean includeDeleted,
+            Character category,
+            Boolean active,
+            Pageable pageable) {
         try {
-            var specification = buildSpecification(search, status, category, active);
+            var specification = buildSpecification(search, status, includeDeleted, category, active);
             Page<SampleDto> result =
                     sampleRepository.findAll(specification, pageable).map(sampleMapper::toDto);
 
             log.info(
-                    "SampleEntities retrieved successfully: search={}, status={}, category={}, active={}, "
+                    "SampleEntities retrieved successfully: search={}, status={}, includeDeleted={}, category={}, active={}, "
                             + "page={}, size={}, totalElements={}",
                     search,
                     status,
+                    includeDeleted,
                     category,
                     active,
                     pageable.getPageNumber(),
@@ -105,7 +111,7 @@ public class SampleService implements ISampleService {
 
     @Override
     @Transactional
-    @CachePut(value = "samples", key = "#id")
+    @CachePut(value = "samples", key = "#result.id")
     public SampleDto update(Long id, SampleDto dto) {
         try {
             SampleEntity entity = sampleRepository
@@ -150,6 +156,29 @@ public class SampleService implements ISampleService {
     @Override
     @Transactional
     @CachePut(value = "samples", key = "#result.id")
+    public SampleDto updateStatus(Long id, Status status) {
+        try {
+            SampleEntity entity = sampleRepository
+                    .findById(id)
+                    .orElseThrow(() -> new NotFoundException(SpringStarterConstants.SAMPLE_ENTITY_RESOURCE_NAME, id));
+
+            entity.setStatus(status);
+            entity.setUpdatedAt(Instant.now());
+            entity = sampleRepository.saveAndFlush(entity);
+
+            log.info("SampleEntity status updated successfully id={} status={}", id, status);
+            return sampleMapper.toDto(entity);
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error during status update id={} status={}", id, status, e);
+            throw e;
+        }
+    }
+
+    @Override
+    @Transactional
+    @CachePut(value = "samples", key = "#result.id")
     public SampleDto duplicate(Long id) {
         SampleEntity entity = sampleRepository
                 .findById(id)
@@ -168,9 +197,10 @@ public class SampleService implements ISampleService {
 
     @Override
     @Transactional(readOnly = true)
-    public byte[] export(String search, Status status, Character category, Boolean active) {
+    public byte[] export(String search, Status status, Boolean includeDeleted, Character category, Boolean active) {
         try {
-            Specification<SampleEntity> specification = buildSpecification(search, status, category, active);
+            Specification<SampleEntity> specification =
+                    buildSpecification(search, status, includeDeleted, category, active);
             var samples = sampleRepository.findAll(specification);
             try (Workbook workbook = new XSSFWorkbook();
                     ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
@@ -261,9 +291,10 @@ public class SampleService implements ISampleService {
     }
 
     private Specification<SampleEntity> buildSpecification(
-            String search, Status status, Character category, Boolean active) {
+            String search, Status status, Boolean includeDeleted, Character category, Boolean active) {
         return Specification.where(SampleSpecification.search(search))
                 .and(SampleSpecification.hasStatus(status))
+                .and(SampleSpecification.includeDeleted(includeDeleted))
                 .and(SampleSpecification.hasCategory(category))
                 .and(SampleSpecification.isActive(active));
     }

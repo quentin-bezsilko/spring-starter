@@ -4,10 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.qbe.springstarter.dto.BulkIdsDto;
-import com.qbe.springstarter.dto.BulkResultDto;
-import com.qbe.springstarter.dto.BulkStatusDto;
-import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.dto.*;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.service.SampleBulkService;
 import com.qbe.springstarter.service.SampleService;
@@ -98,9 +95,9 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(sampleDto, secondSample), pageable, 2);
 
-            when(sampleService.findAll(null, null, null, null, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, null, null, null, null, pageable)).thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, null, pageable);
+            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, null, null, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -115,7 +112,7 @@ class TestSampleController {
 
             assertEquals(secondSample, response.getBody().getContent().get(1));
 
-            verify(sampleService).findAll(null, null, null, null, pageable);
+            verify(sampleService).findAll(null, null, null, null, null, pageable);
         }
 
         @Test
@@ -125,9 +122,9 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(), pageable, 12);
 
-            when(sampleService.findAll(null, null, null, null, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, null, null, null, null, pageable)).thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, null, pageable);
+            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, null, null, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -139,7 +136,7 @@ class TestSampleController {
 
             assertEquals(Sort.by("name").descending(), response.getBody().getSort());
 
-            verify(sampleService).findAll(null, null, null, null, pageable);
+            verify(sampleService).findAll(null, null, null, null, null, pageable);
         }
 
         @Test
@@ -149,9 +146,9 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(), pageable, 0);
 
-            when(sampleService.findAll(null, null, null, null, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, null, null, null, null, pageable)).thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, null, pageable);
+            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, null, null, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -159,7 +156,7 @@ class TestSampleController {
             assertTrue(response.getBody().isEmpty());
             assertEquals(0, response.getBody().getTotalElements());
 
-            verify(sampleService).findAll(null, null, null, null, pageable);
+            verify(sampleService).findAll(null, null, null, null, null, pageable);
         }
 
         @Test
@@ -171,9 +168,11 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(sampleDto), pageable, 1);
 
-            when(sampleService.findAll(search, null, null, null, pageable)).thenReturn(page);
+            when(sampleService.findAll(search, null, null, null, null, pageable))
+                    .thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(search, null, null, null, pageable);
+            ResponseEntity<Page<SampleDto>> response =
+                    sampleController.findAll(search, null, null, null, null, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -181,7 +180,7 @@ class TestSampleController {
             assertEquals(1, response.getBody().getTotalElements());
             assertEquals(sampleDto, response.getBody().getContent().getFirst());
 
-            verify(sampleService).findAll(search, null, null, null, pageable);
+            verify(sampleService).findAll(search, null, null, null, null, pageable);
         }
 
         @Test
@@ -193,16 +192,18 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(sampleDto), pageable, 1);
 
-            when(sampleService.findAll(null, status, null, null, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, status, null, null, null, pageable))
+                    .thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, status, null, null, pageable);
+            ResponseEntity<Page<SampleDto>> response =
+                    sampleController.findAll(null, status, null, null, null, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
 
             assertEquals(1, response.getBody().getTotalElements());
 
-            verify(sampleService).findAll(null, status, null, null, pageable);
+            verify(sampleService).findAll(null, status, null, null, null, pageable);
         }
 
         @Test
@@ -214,16 +215,18 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(sampleDto), pageable, 1);
 
-            when(sampleService.findAll(null, null, category, null, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, null, null, category, null, pageable))
+                    .thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, category, null, pageable);
+            ResponseEntity<Page<SampleDto>> response =
+                    sampleController.findAll(null, null, null, category, null, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
 
             assertEquals(1, response.getBody().getTotalElements());
 
-            verify(sampleService).findAll(null, null, category, null, pageable);
+            verify(sampleService).findAll(null, null, null, category, null, pageable);
         }
 
         @Test
@@ -235,16 +238,18 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(sampleDto), pageable, 1);
 
-            when(sampleService.findAll(null, null, null, active, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, null, null, null, active, pageable))
+                    .thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, active, pageable);
+            ResponseEntity<Page<SampleDto>> response =
+                    sampleController.findAll(null, null, null, null, active, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
 
             assertEquals(1, response.getBody().getTotalElements());
 
-            verify(sampleService).findAll(null, null, null, active, pageable);
+            verify(sampleService).findAll(null, null, null, null, active, pageable);
         }
 
         @Test
@@ -254,16 +259,17 @@ class TestSampleController {
             Status status = Status.ACTIVE;
             Character category = 'A';
             Boolean active = true;
+            Boolean includeDeleted = false;
 
             Pageable pageable = PageRequest.of(1, 8, Sort.by("price").descending());
 
             Page<SampleDto> page = new PageImpl<>(List.of(sampleDto), pageable, 9);
 
-            when(sampleService.findAll(search, status, category, active, pageable))
+            when(sampleService.findAll(search, status, includeDeleted, category, active, pageable))
                     .thenReturn(page);
 
             ResponseEntity<Page<SampleDto>> response =
-                    sampleController.findAll(search, status, category, active, pageable);
+                    sampleController.findAll(search, status, includeDeleted, category, active, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -273,7 +279,7 @@ class TestSampleController {
             assertEquals(9, response.getBody().getTotalElements());
             assertEquals(2, response.getBody().getTotalPages());
 
-            verify(sampleService).findAll(search, status, category, active, pageable);
+            verify(sampleService).findAll(search, status, includeDeleted, category, active, pageable);
         }
 
         @Test
@@ -285,15 +291,17 @@ class TestSampleController {
 
             Page<SampleDto> page = new PageImpl<>(List.of(), pageable, 0);
 
-            when(sampleService.findAll(null, null, null, active, pageable)).thenReturn(page);
+            when(sampleService.findAll(null, null, null, null, active, pageable))
+                    .thenReturn(page);
 
-            ResponseEntity<Page<SampleDto>> response = sampleController.findAll(null, null, null, active, pageable);
+            ResponseEntity<Page<SampleDto>> response =
+                    sampleController.findAll(null, null, null, null, active, pageable);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
             assertTrue(response.getBody().isEmpty());
 
-            verify(sampleService).findAll(null, null, null, false, pageable);
+            verify(sampleService).findAll(null, null, null, null, false, pageable);
         }
     }
 
@@ -312,6 +320,94 @@ class TestSampleController {
             assertEquals(sampleDto, response.getBody());
 
             verify(sampleService).update(1L, sampleDto);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateStatus")
+    class UpdateStatus {
+
+        @Test
+        @DisplayName("Doit retourner 202 avec le DTO mis à jour")
+        void shouldUpdateStatus() {
+
+            UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.ARCHIVED);
+
+            SampleDto updatedSample = SampleDto.builder()
+                    .id(1L)
+                    .name("Sample")
+                    .status(Status.ARCHIVED)
+                    .build();
+
+            when(sampleService.updateStatus(1L, Status.ARCHIVED)).thenReturn(updatedSample);
+
+            ResponseEntity<SampleDto> response = sampleController.updateStatus(1L, request);
+
+            assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals(updatedSample, response.getBody());
+
+            verify(sampleService).updateStatus(1L, Status.ARCHIVED);
+        }
+
+        @Test
+        @DisplayName("Doit transmettre le statut ACTIVE au service")
+        void shouldUpdateStatusToActive() {
+
+            UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.ACTIVE);
+
+            SampleDto updatedSample =
+                    SampleDto.builder().id(1L).status(Status.ACTIVE).build();
+
+            when(sampleService.updateStatus(1L, Status.ACTIVE)).thenReturn(updatedSample);
+
+            ResponseEntity<SampleDto> response = sampleController.updateStatus(1L, request);
+
+            assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals(Status.ACTIVE, response.getBody().status());
+
+            verify(sampleService).updateStatus(1L, Status.ACTIVE);
+        }
+
+        @Test
+        @DisplayName("Doit transmettre le statut DELETED au service")
+        void shouldUpdateStatusToDeleted() {
+
+            UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.DELETED);
+
+            SampleDto updatedSample =
+                    SampleDto.builder().id(1L).status(Status.DELETED).build();
+
+            when(sampleService.updateStatus(1L, Status.DELETED)).thenReturn(updatedSample);
+
+            ResponseEntity<SampleDto> response = sampleController.updateStatus(1L, request);
+
+            assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals(Status.DELETED, response.getBody().status());
+
+            verify(sampleService).updateStatus(1L, Status.DELETED);
+        }
+
+        @Test
+        @DisplayName("Doit retourner le DTO renvoyé par le service")
+        void shouldReturnServiceResponse() {
+            UpdateSampleStatusDto request = new UpdateSampleStatusDto(Status.CREATED);
+
+            SampleDto serviceResponse = SampleDto.builder()
+                    .id(42L)
+                    .name("Sample")
+                    .status(Status.CREATED)
+                    .build();
+
+            when(sampleService.updateStatus(42L, Status.CREATED)).thenReturn(serviceResponse);
+
+            ResponseEntity<SampleDto> response = sampleController.updateStatus(42L, request);
+            assertNotNull(response.getBody());
+            assertEquals(42L, response.getBody().id());
+            assertEquals(Status.CREATED, response.getBody().status());
+            verify(sampleService).updateStatus(42L, Status.CREATED);
         }
     }
 
@@ -378,14 +474,14 @@ class TestSampleController {
         @DisplayName("Doit retourner 200 avec le fichier Excel")
         void shouldExportSamples() {
             byte[] file = "excel-content".getBytes();
-            when(sampleService.export(null, null, null, null)).thenReturn(file);
-            ResponseEntity<byte[]> response = sampleController.export(null, null, null, null);
+            when(sampleService.export(null, null, null, null, null)).thenReturn(file);
+            ResponseEntity<byte[]> response = sampleController.export(null, null, null, null, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
             assertArrayEquals(file, response.getBody());
 
-            verify(sampleService).export(null, null, null, null);
+            verify(sampleService).export(null, null, null, null, null);
         }
 
         @Test
@@ -394,14 +490,14 @@ class TestSampleController {
 
             byte[] file = "excel-content".getBytes();
 
-            when(sampleService.export("sample", Status.ACTIVE, 'A', true)).thenReturn(file);
+            when(sampleService.export("sample", Status.ACTIVE, null, 'A', true)).thenReturn(file);
 
-            ResponseEntity<byte[]> response = sampleController.export("sample", Status.ACTIVE, 'A', true);
+            ResponseEntity<byte[]> response = sampleController.export("sample", Status.ACTIVE, null, 'A', true);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
 
-            verify(sampleService).export("sample", Status.ACTIVE, 'A', true);
+            verify(sampleService).export("sample", Status.ACTIVE, null, 'A', true);
         }
 
         @Test
@@ -410,9 +506,9 @@ class TestSampleController {
 
             byte[] file = new byte[] {1, 2, 3};
 
-            when(sampleService.export(null, null, null, null)).thenReturn(file);
+            when(sampleService.export(null, null, null, null, null)).thenReturn(file);
 
-            ResponseEntity<byte[]> response = sampleController.export(null, null, null, null);
+            ResponseEntity<byte[]> response = sampleController.export(null, null, null, null, null);
 
             assertEquals(
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
