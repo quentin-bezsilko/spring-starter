@@ -4,9 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.entity.SampleEntity;
@@ -33,12 +31,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @ExtendWith(MockitoExtension.class)
+@WithMockUser(username = "test-user")
 class TestSampleService {
 
     @Mock
     private SampleRepository sampleRepository;
+
+    @Mock
+    private SampleFavoriteService sampleFavoriteService;
 
     @Mock
     private SampleMapper sampleMapper;
@@ -50,7 +53,12 @@ class TestSampleService {
 
     @BeforeEach
     void setUp() {
-        sampleDto = SampleDto.builder().id(1L).name("Sample").version(0L).build();
+        sampleDto = SampleDto.builder()
+                .id(1L)
+                .name("Sample")
+                .version(0L)
+                .favorite(false)
+                .build();
 
         sampleEntity = new SampleEntity();
         sampleEntity.setId(1L);
@@ -58,7 +66,9 @@ class TestSampleService {
         sampleEntity.setVersion(0L);
         sampleEntity.setStatus(Status.ACTIVE);
 
-        sampleService = new SampleService(sampleRepository, sampleMapper);
+        sampleService = new SampleService(sampleRepository, sampleFavoriteService, sampleMapper);
+
+        lenient().when(sampleFavoriteService.isFavorite(anyLong())).thenReturn(false);
     }
 
     @Nested
@@ -135,8 +145,12 @@ class TestSampleService {
             entity2.setId(2L);
             entity2.setName("Sample2");
 
-            SampleDto dto2 =
-                    SampleDto.builder().id(2L).name("Sample2").version(0L).build();
+            SampleDto dto2 = SampleDto.builder()
+                    .id(2L)
+                    .name("Sample2")
+                    .version(0L)
+                    .favorite(false)
+                    .build();
 
             Pageable pageable = PageRequest.of(0, 20, Sort.by("id").ascending());
 
@@ -559,6 +573,7 @@ class TestSampleService {
                     .id(2L)
                     .name("Sample (copie)")
                     .version(0L)
+                    .favorite(false)
                     .build();
 
             when(sampleRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));

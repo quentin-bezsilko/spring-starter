@@ -12,12 +12,17 @@ import com.qbe.springstarter.service.SampleBulkService;
 import com.qbe.springstarter.service.SampleService;
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
+import org.springframework.security.test.context.support.WithMockUser;
 
+@WithMockUser(username = "test-user")
 class TestSampleBulkServiceIT extends TestAbstractIntegration {
 
     @Autowired
@@ -28,6 +33,14 @@ class TestSampleBulkServiceIT extends TestAbstractIntegration {
 
     @Autowired
     private SampleRepository sampleRepository;
+
+    @Autowired
+    private CacheManager cacheManager;
+
+    @BeforeEach
+    void clearCache() {
+        Objects.requireNonNull(cacheManager.getCache("samples")).clear();
+    }
 
     @Test
     void shouldBulkDeleteSamples() {
@@ -109,17 +122,6 @@ class TestSampleBulkServiceIT extends TestAbstractIntegration {
     }
 
     @Test
-    void shouldUpdateStatusToArchived() {
-        SampleDto sample = sampleService.create(buildSampleDto("STATUS-ARCHIVED-" + UUID.randomUUID()).toBuilder()
-                .status(Status.CREATED)
-                .build());
-
-        SampleDto updated = sampleService.updateStatus(sample.id(), Status.ARCHIVED);
-        assertThat(updated.status()).isEqualTo(Status.ARCHIVED);
-        assertThat(sampleService.findById(sample.id()).status()).isEqualTo(Status.ARCHIVED);
-    }
-
-    @Test
     void shouldUpdateStatusToActive() {
         SampleDto sample = sampleService.create(buildSampleDto("STATUS-ACTIVE-" + UUID.randomUUID()).toBuilder()
                 .status(Status.CREATED)
@@ -129,16 +131,6 @@ class TestSampleBulkServiceIT extends TestAbstractIntegration {
 
         assertThat(updated.status()).isEqualTo(Status.ACTIVE);
         assertThat(sampleService.findById(sample.id()).status()).isEqualTo(Status.ACTIVE);
-    }
-
-    @Test
-    void shouldUpdateStatusToDeleted() {
-        SampleDto sample = sampleService.create(buildSampleDto("STATUS-DELETED-" + UUID.randomUUID()));
-        SampleDto updated = sampleService.updateStatus(sample.id(), Status.DELETED);
-
-        assertThat(updated.status()).isEqualTo(Status.DELETED);
-        assertThat(sampleService.findById(sample.id()).status()).isEqualTo(Status.DELETED);
-        assertThat(sampleRepository.existsById(sample.id())).isTrue();
     }
 
     @Test

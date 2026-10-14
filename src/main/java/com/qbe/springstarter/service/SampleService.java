@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +38,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class SampleService implements ISampleService {
 
     private final SampleRepository sampleRepository;
+    private final ISampleFavoriteService sampleFavoriteService;
     private final SampleMapper sampleMapper;
 
     @Override
-    @CachePut(value = "samples", key = "#result.id")
+    @CachePut(value = "samples", key = "#result.id + '_' + @securityUtils.getCurrentUsername()")
     public SampleDto create(SampleDto dto) {
         try {
             SampleEntity entity = sampleMapper.toEntity(dto);
@@ -50,7 +52,7 @@ public class SampleService implements ISampleService {
 
             log.info("SampleEntity created successfully with id={}", entity.getId());
 
-            return sampleMapper.toDto(entity);
+            return enrichWithFavorite(sampleMapper.toDto(entity));
         } catch (Exception e) {
             log.error("Error during sample creation", e);
             throw new TechnicalException("Failed to create SampleEntity");
@@ -58,12 +60,13 @@ public class SampleService implements ISampleService {
     }
 
     @Override
-    @Cacheable(value = "samples", key = "#id")
+    @Cacheable(value = "samples", key = "#id + '_' + @securityUtils.getCurrentUsername()")
     public SampleDto findById(Long id) {
         try {
             SampleDto result = sampleRepository
                     .findById(id)
                     .map(sampleMapper::toDto)
+                    .map(this::enrichWithFavorite)
                     .orElseThrow(() -> new NotFoundException(SpringStarterConstants.SAMPLE_ENTITY_RESOURCE_NAME, id));
 
             log.info("SampleEntity found successfully with id={}", id);
@@ -85,11 +88,14 @@ public class SampleService implements ISampleService {
             Character category,
             Boolean active,
             Pageable pageable) {
-        try {
-            var specification = buildSpecification(search, status, includeDeleted, category, active);
-            Page<SampleDto> result =
-                    sampleRepository.findAll(specification, pageable).map(sampleMapper::toDto);
 
+        try {
+            Set<Long> favorites = sampleFavoriteService.getUserFavoriteSampleIds();
+            var specification = buildSpecification(search, status, includeDeleted, category, active);
+            Page<SampleDto> result = sampleRepository
+                    .findAll(specification, pageable)
+                    .map(sampleMapper::toDto)
+                    .map(dto -> enrichWithFavorites(dto, favorites));
             log.info(
                     "SampleEntities retrieved successfully: search={}, status={}, includeDeleted={}, category={}, active={}, "
                             + "page={}, size={}, totalElements={}",
@@ -111,7 +117,7 @@ public class SampleService implements ISampleService {
 
     @Override
     @Transactional
-    @CachePut(value = "samples", key = "#result.id")
+    @CachePut(value = "samples", key = "#result.id + '_' + @securityUtils.getCurrentUsername()")
     public SampleDto update(Long id, SampleDto dto) {
         try {
             SampleEntity entity = sampleRepository
@@ -127,7 +133,7 @@ public class SampleService implements ISampleService {
             entity = sampleRepository.saveAndFlush(entity);
 
             log.info("SampleEntity updated successfully with id={}", id);
-            return sampleMapper.toDto(entity);
+            return enrichWithFavorite(sampleMapper.toDto(entity));
         } catch (NotFoundException | VersionConflictException e) {
             throw e;
         } catch (Exception e) {
@@ -137,7 +143,8 @@ public class SampleService implements ISampleService {
     }
 
     @Override
-    @CacheEvict(value = "samples", key = "#id")
+    @Transactional
+    @CacheEvict(value = "samples", key = "#id + '_' + @securityUtils.getCurrentUsername()")
     public void delete(Long id) {
         try {
             if (!sampleRepository.existsById(id)) {
@@ -155,7 +162,7 @@ public class SampleService implements ISampleService {
 
     @Override
     @Transactional
-    @CachePut(value = "samples", key = "#result.id")
+    @CachePut(value = "samples", key = "#result.id + '_' + @securityUtils.getCurrentUsername()")
     public SampleDto updateStatus(Long id, Status status) {
         try {
             SampleEntity entity = sampleRepository
@@ -167,7 +174,7 @@ public class SampleService implements ISampleService {
             entity = sampleRepository.saveAndFlush(entity);
 
             log.info("SampleEntity status updated successfully id={} status={}", id, status);
-            return sampleMapper.toDto(entity);
+            return enrichWithFavorite(sampleMapper.toDto(entity));
         } catch (NotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -178,7 +185,7 @@ public class SampleService implements ISampleService {
 
     @Override
     @Transactional
-    @CachePut(value = "samples", key = "#result.id")
+    @CachePut(value = "samples", key = "#result.id + '_' + @securityUtils.getCurrentUsername()")
     public SampleDto duplicate(Long id) {
         SampleEntity entity = sampleRepository
                 .findById(id)
@@ -192,7 +199,7 @@ public class SampleService implements ISampleService {
         duplicatedEntity.setUpdatedAt(Instant.now());
         duplicatedEntity = sampleRepository.save(duplicatedEntity);
         log.info("Sample duplicated successfully sourceId={} duplicatedId={}", id, duplicatedEntity.getId());
-        return sampleMapper.toDto(duplicatedEntity);
+        return enrichWithFavorite(sampleMapper.toDto(duplicatedEntity));
     }
 
     @Override
@@ -297,5 +304,15 @@ public class SampleService implements ISampleService {
                 .and(SampleSpecification.includeDeleted(includeDeleted))
                 .and(SampleSpecification.hasCategory(category))
                 .and(SampleSpecification.isActive(active));
+    }
+
+    private SampleDto enrichWithFavorite(SampleDto dto) {
+        return dto.toBuilder()
+                .favorite(sampleFavoriteService.isFavorite(dto.id()))
+                .build();
+    }
+
+    private SampleDto enrichWithFavorites(SampleDto dto, Set<Long> favorites) {
+        return dto.toBuilder().favorite(favorites.contains(dto.id())).build();
     }
 }

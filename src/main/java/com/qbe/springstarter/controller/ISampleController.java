@@ -117,7 +117,7 @@ public interface ISampleController {
     @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
     @PostMapping("/bulk-delete")
     ResponseEntity<BulkResultDto> bulkDelete(
-            @Parameter(description = "Identifiers of the samples to delete") @RequestBody BulkIdsDto request);
+            @Parameter(description = "Identifiers of the samples to delete") @Valid @RequestBody BulkIdsDto request);
 
     @Operation(
             summary = "Duplicate samples in bulk",
@@ -128,7 +128,7 @@ public interface ISampleController {
     @ApiResponse(responseCode = "403", description = "Missing WRITE authority")
     @PostMapping("/bulk-duplicate")
     ResponseEntity<BulkResultDto> bulkDuplicate(
-            @Parameter(description = "Identifiers of the samples to duplicate") @RequestBody BulkIdsDto request);
+            @Parameter(description = "Identifiers of the samples to duplicate") @Valid @RequestBody BulkIdsDto request);
 
     @Operation(
             summary = "Update status of samples in bulk",

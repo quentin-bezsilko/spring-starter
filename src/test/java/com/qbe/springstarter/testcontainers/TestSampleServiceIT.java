@@ -21,7 +21,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.test.context.support.WithMockUser;
 
+@WithMockUser(username = "test-user")
 class TestSampleServiceIT extends TestAbstractIntegration {
 
     @Autowired

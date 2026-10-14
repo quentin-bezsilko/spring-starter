@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-create-table-sample-favorites
+      author: qbe
+      changes:
+        - createTable:
+            schemaName: mydb
+            tableName: sample_favorite
+            columns:
+              - column:
+                  name: sample_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            schemaName: mydb
+            tableName: sample_favorite
+            columnNames: sample_id, username
+            constraintName: pk_sample_favorite
+        - addForeignKeyConstraint:
+            baseTableSchemaName: mydb
+            baseTableName: sample_favorite
+            baseColumnNames: sample_id
+            referencedTableSchemaName: mydb
+            referencedTableName: sample_entity
+            referencedColumnNames: id
+            constraintName: fk_sample_favorite_sample
+            onDelete: CASCADE

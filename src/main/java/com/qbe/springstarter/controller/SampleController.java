@@ -4,8 +4,8 @@ import com.qbe.springstarter.constants.MetricsConstants;
 import com.qbe.springstarter.dto.*;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.metrics.annotation.SampleMetricAnnotation;
-import com.qbe.springstarter.service.SampleBulkService;
-import com.qbe.springstarter.service.SampleService;
+import com.qbe.springstarter.service.ISampleBulkService;
+import com.qbe.springstarter.service.ISampleService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class SampleController implements ISampleController {
 
-    private final SampleService sampleService;
-    private final SampleBulkService sampleBulkService;
+    private final ISampleService sampleService;
+    private final ISampleBulkService sampleBulkService;
 
     @Override
     @SampleMetricAnnotation(operation = MetricsConstants.CREATE)
