@@ -6,7 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.qbe.springstarter.dto.ImportResultDto;
-import com.qbe.springstarter.error.TechnicalException;
+import com.qbe.springstarter.error.EmptyImportFileException;
 import com.qbe.springstarter.service.ISampleImportService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -56,17 +56,17 @@ class TestSampleImportController {
         }
 
         @Test
-        @DisplayName("Doit lever une TechnicalException lorsque le fichier est null")
-        void shouldThrowTechnicalExceptionWhenFileIsNull() {
-            TechnicalException exception =
-                    assertThrows(TechnicalException.class, () -> sampleImportController.importSamples(null));
+        @DisplayName("Doit lever une EmptyImportFileException lorsque le fichier est null")
+        void shouldThrowEmptyImportFileExceptionWhenFileIsNull() {
+            EmptyImportFileException exception =
+                    assertThrows(EmptyImportFileException.class, () -> sampleImportController.importSamples(null));
 
             assertEquals("The uploaded file is empty", exception.getMessage());
         }
 
         @Test
-        @DisplayName("Doit lever une TechnicalException lorsque le fichier est vide")
-        void shouldThrowTechnicalExceptionWhenFileIsEmpty() {
+        @DisplayName("Doit lever une EmptyImportFileException lorsque le fichier est vide")
+        void shouldThrowEmptyImportFileExceptionWhenFileIsEmpty() {
 
             MultipartFile file = new MockMultipartFile(
                     "file",
@@ -74,8 +74,8 @@ class TestSampleImportController {
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     new byte[0]);
 
-            TechnicalException exception =
-                    assertThrows(TechnicalException.class, () -> sampleImportController.importSamples(file));
+            EmptyImportFileException exception =
+                    assertThrows(EmptyImportFileException.class, () -> sampleImportController.importSamples(file));
 
             assertEquals("The uploaded file is empty", exception.getMessage());
         }

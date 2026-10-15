@@ -2,6 +2,9 @@ package com.qbe.springstarter.controller;
 
 import com.qbe.springstarter.constants.MetricsConstants;
 import com.qbe.springstarter.dto.*;
+import com.qbe.springstarter.dto.bulk.BulkIdsDto;
+import com.qbe.springstarter.dto.bulk.BulkResultDto;
+import com.qbe.springstarter.dto.bulk.BulkStatusDto;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.metrics.annotation.SampleMetricAnnotation;
 import com.qbe.springstarter.service.ISampleBulkService;

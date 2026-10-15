@@ -1,5 +1,9 @@
 package com.qbe.springstarter.error;
 
+import com.qbe.springstarter.controller.SampleController;
+import com.qbe.springstarter.controller.SampleFavoriteController;
+import com.qbe.springstarter.controller.SampleImportController;
+import com.qbe.springstarter.controller.SampleStatisticsController;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,8 +16,14 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice
 @Slf4j
+@RestControllerAdvice(
+        assignableTypes = {
+            SampleController.class,
+            SampleFavoriteController.class,
+            SampleImportController.class,
+            SampleStatisticsController.class
+        })
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
@@ -109,5 +119,23 @@ public class GlobalExceptionHandler {
         problem.setDetail("The resource has been modified by another user");
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    @ExceptionHandler(EmptyImportFileException.class)
+    public ResponseEntity<ProblemDetail> handleEmptyImportFile(EmptyImportFileException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setTitle("Empty import file");
+        problem.setDetail(ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
+    @ExceptionHandler(InvalidImportFileException.class)
+    public ResponseEntity<ProblemDetail> handleInvalidImportFile(InvalidImportFileException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setTitle("Invalid import file");
+        problem.setDetail(ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 }

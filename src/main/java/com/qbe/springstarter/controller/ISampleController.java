@@ -1,6 +1,9 @@
 package com.qbe.springstarter.controller;
 
 import com.qbe.springstarter.dto.*;
+import com.qbe.springstarter.dto.bulk.BulkIdsDto;
+import com.qbe.springstarter.dto.bulk.BulkResultDto;
+import com.qbe.springstarter.dto.bulk.BulkStatusDto;
 import com.qbe.springstarter.enums.Status;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

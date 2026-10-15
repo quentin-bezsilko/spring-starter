@@ -1,6 +1,6 @@
 package com.qbe.springstarter.service;
 
-import com.qbe.springstarter.dto.BulkResultDto;
+import com.qbe.springstarter.dto.bulk.BulkResultDto;
 import com.qbe.springstarter.enums.Status;
 import java.util.List;
 

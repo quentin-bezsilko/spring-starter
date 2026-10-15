@@ -28,9 +28,7 @@ class TestGlobalExceptionHandler {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-
         exceptionHandler = new GlobalExceptionHandler();
-
         when(httpServletRequest.getRequestURI()).thenReturn("/api/v1/samples/1");
     }
 
@@ -152,14 +150,41 @@ class TestGlobalExceptionHandler {
                 new ObjectOptimisticLockingFailureException("SampleEntity", 1L);
 
         ResponseEntity<ProblemDetail> response = exceptionHandler.handleOptimisticLock(exception);
-
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
 
         ProblemDetail problemDetail = response.getBody();
-
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
         assertThat(problemDetail.getTitle()).isEqualTo("Version conflict");
         assertThat(problemDetail.getDetail()).isEqualTo("The resource has been modified by another user");
+    }
+
+    @Test
+    void shouldHandleEmptyImportFileException() {
+        EmptyImportFileException exception = new EmptyImportFileException("The uploaded file is empty");
+
+        ResponseEntity<ProblemDetail> response = exceptionHandler.handleEmptyImportFile(exception);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+
+        ProblemDetail problemDetail = response.getBody();
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        assertThat(problemDetail.getTitle()).isEqualTo("Empty import file");
+        assertThat(problemDetail.getDetail()).isEqualTo("The uploaded file is empty");
+    }
+
+    @Test
+    void shouldHandleInvalidImportFileException() {
+        InvalidImportFileException exception =
+                new InvalidImportFileException("Only Excel files (.xlsx, .xls) are supported");
+
+        ResponseEntity<ProblemDetail> response = exceptionHandler.handleInvalidImportFile(exception);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+
+        ProblemDetail problemDetail = response.getBody();
+        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        assertThat(problemDetail.getTitle()).isEqualTo("Invalid import file");
+        assertThat(problemDetail.getDetail()).isEqualTo("Only Excel files (.xlsx, .xls) are supported");
     }
 }

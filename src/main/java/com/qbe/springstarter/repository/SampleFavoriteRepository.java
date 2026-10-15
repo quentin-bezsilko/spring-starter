@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SampleFavoriteRepository extends JpaRepository<SampleFavoriteEntity, SampleFavoriteId> {
 
     List<SampleFavoriteEntity> findByIdUsername(String username);
+
+    long count();
 }

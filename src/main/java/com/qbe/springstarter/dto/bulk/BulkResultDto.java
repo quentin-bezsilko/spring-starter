@@ -1,4 +1,4 @@
-package com.qbe.springstarter.dto;
+package com.qbe.springstarter.dto.bulk;
 
 import java.util.List;
 

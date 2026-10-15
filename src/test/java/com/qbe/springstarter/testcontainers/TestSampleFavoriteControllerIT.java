@@ -1,5 +1,6 @@
 package com.qbe.springstarter.testcontainers;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,50 +34,41 @@ class TestSampleFavoriteControllerIT extends TestAbstractIntegration {
 
     @Test
     void shouldAddFavorite() throws Exception {
-
         var sample = sampleService.create(buildSampleDto("FAVORITE-SAMPLE-001"));
-
-        mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id())).andExpect(status().isCreated());
+        mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id()).with(user("test-user")))
+                .andExpect(status().isCreated());
     }
 
     @Test
     void shouldRemoveFavorite() throws Exception {
-
         var sample = sampleService.create(buildSampleDto("FAVORITE-SAMPLE-002"));
-
         mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id())).andExpect(status().isCreated());
-
         mockMvc.perform(delete("/api/v1/samples/{id}/favorite", sample.id())).andExpect(status().isNoContent());
     }
 
     @Test
     void shouldReturnNotFoundWhenAddingFavoriteToUnknownSample() throws Exception {
-
         mockMvc.perform(post("/api/v1/samples/{id}/favorite", 999999L)).andExpect(status().isNotFound());
     }
 
     @Test
     void shouldReturnNotFoundWhenRemovingFavoriteFromUnknownSample() throws Exception {
-
         mockMvc.perform(delete("/api/v1/samples/{id}/favorite", 999999L)).andExpect(status().isNotFound());
     }
 
     @Test
     void shouldAddFavoriteOnlyOnce() throws Exception {
         var sample = sampleService.create(buildSampleDto("FAVORITE-SAMPLE-003"));
-
         mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id())).andExpect(status().isCreated());
-
         mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id())).andExpect(status().isCreated());
     }
 
     @Test
     void shouldMarkSampleAsFavorite() throws Exception {
         var sample = sampleService.create(buildSampleDto("FAVORITE-SAMPLE-004"));
-
-        mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id())).andExpect(status().isCreated());
-
-        mockMvc.perform(get("/api/v1/samples/{id}", sample.id()))
+        mockMvc.perform(post("/api/v1/samples/{id}/favorite", sample.id()).with(user("test-user")))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/v1/samples/{id}", sample.id()).with(user("test-user")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.favorite").value(true));
     }

@@ -1,8 +1,8 @@
 package com.qbe.springstarter.service;
 
 import com.qbe.springstarter.constants.SpringStarterConstants;
-import com.qbe.springstarter.dto.BulkResultDto;
 import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.dto.bulk.BulkResultDto;
 import com.qbe.springstarter.entity.SampleEntity;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.repository.SampleRepository;

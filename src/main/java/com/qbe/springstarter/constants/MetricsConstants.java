@@ -16,6 +16,7 @@ public final class MetricsConstants {
     public static final String UPDATE_STATUS = "update_status";
     public static final String ADD_FAVORITE = "add_favorite";
     public static final String REMOVE_FAVORITE = "remove_favorite";
+    public static final String STATISTICS = "get_statistics";
 
     public static final String BULK_DELETE = "bulk_delete";
     public static final String BULK_DUPLICATE = "bulk_duplicate";

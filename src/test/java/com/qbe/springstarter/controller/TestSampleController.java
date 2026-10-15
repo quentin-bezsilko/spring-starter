@@ -5,6 +5,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.qbe.springstarter.dto.*;
+import com.qbe.springstarter.dto.bulk.BulkIdsDto;
+import com.qbe.springstarter.dto.bulk.BulkResultDto;
+import com.qbe.springstarter.dto.bulk.BulkStatusDto;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.service.SampleBulkService;
 import com.qbe.springstarter.service.SampleService;

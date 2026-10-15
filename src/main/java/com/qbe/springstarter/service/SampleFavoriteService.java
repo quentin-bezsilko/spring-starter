@@ -34,6 +34,9 @@ public class SampleFavoriteService implements ISampleFavoriteService {
         }
 
         String username = getCurrentUsername();
+
+        log.info("ADD favorite sampleId={} username={}", sampleId, username);
+
         SampleFavoriteId favoriteId = new SampleFavoriteId(sampleId, username);
 
         if (sampleFavoriteRepository.existsById(favoriteId)) {

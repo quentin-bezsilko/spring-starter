@@ -1,4 +1,4 @@
-package com.qbe.springstarter.dto;
+package com.qbe.springstarter.dto.bulk;
 
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;

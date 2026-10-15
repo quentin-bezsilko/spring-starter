@@ -1,4 +1,4 @@
-package com.qbe.springstarter.dto;
+package com.qbe.springstarter.dto.bulk;
 
 import com.qbe.springstarter.enums.Status;
 import java.util.List;

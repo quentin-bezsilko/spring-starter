@@ -5,10 +5,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qbe.springstarter.dto.BulkIdsDto;
-import com.qbe.springstarter.dto.BulkStatusDto;
 import com.qbe.springstarter.dto.SampleDto;
 import com.qbe.springstarter.dto.UpdateSampleStatusDto;
+import com.qbe.springstarter.dto.bulk.BulkIdsDto;
+import com.qbe.springstarter.dto.bulk.BulkStatusDto;
 import com.qbe.springstarter.enums.Status;
 import java.io.ByteArrayInputStream;
 import java.util.List;

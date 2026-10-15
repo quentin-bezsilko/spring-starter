@@ -3,8 +3,8 @@ package com.qbe.springstarter.testcontainers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
-import com.qbe.springstarter.dto.BulkResultDto;
 import com.qbe.springstarter.dto.SampleDto;
+import com.qbe.springstarter.dto.bulk.BulkResultDto;
 import com.qbe.springstarter.enums.Status;
 import com.qbe.springstarter.error.NotFoundException;
 import com.qbe.springstarter.repository.SampleRepository;
